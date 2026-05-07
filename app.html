@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobSlot AI — Keep It Pristine</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans','Segoe UI',sans-serif;background:#0c0f1a;color:#e2e8f0;min-height:100vh}
+  input,select,button{font-family:inherit}
+  input:focus,select:focus{outline:none;border-color:#38bdf8!important}
+  ::-webkit-scrollbar{width:5px;height:5px}
+  ::-webkit-scrollbar-track{background:#1a1f2e}
+  ::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+
+  /* Login */
+  #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0c0f1a}
+  .login-box{background:#0f172a;border:1px solid #1e293b;border-radius:20px;padding:40px;width:360px;text-align:center}
+  .login-logo{width:52px;height:52px;background:linear-gradient(135deg,#0ea5e9,#6366f1);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px}
+  .login-title{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin-bottom:4px}
+  .login-sub{font-size:12px;color:#64748b;margin-bottom:28px;letter-spacing:.5px}
+  .login-input{width:100%;padding:11px 14px;border-radius:10px;border:1px solid #1e293b;background:#0c0f1a;color:#e2e8f0;font-size:14px;margin-bottom:12px}
+  .login-btn{width:100%;padding:12px;border-radius:10px;background:#0284c7;color:#fff;border:none;font-weight:700;font-size:14px;cursor:pointer;transition:background .2s}
+  .login-btn:hover{background:#0369a1}
+  .login-error{color:#f87171;font-size:12px;margin-top:8px}
+
+  /* App */
+  #app-screen{display:none;flex-direction:column;min-height:100vh}
+  .header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid #1e293b;padding:12px 18px;display:flex;align-items:center;gap:10;flex-wrap:wrap}
+  .header-logo{width:32px;height:32px;background:linear-gradient(135deg,#0ea5e9,#6366f1);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+  .header-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;margin-left:10px}
+  .header-sub{font-size:10px;color:#64748b;letter-spacing:.5px;margin-left:10px}
+  .sync-btn{padding:6px 14px;border-radius:8px;background:#064e3b;color:#4ade80;border:1px solid #065f46;font-size:12px;font-weight:700;cursor:pointer;transition:background .2s;margin-left:12px}
+  .sync-btn:hover{background:#065f46}
+  .sync-btn:disabled{opacity:.5;cursor:not-allowed}
+  .sync-status{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-left:8px}
+  .sync-ok{background:#064e3b;color:#4ade80}
+  .sync-err{background:#450a0a;color:#f87171}
+  .tabs{display:flex;gap:6px;margin-left:auto}
+  .tab-btn{padding:6px 12px;border-radius:8px;border:1px solid #1e293b;background:transparent;color:#94a3b8;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+  .tab-btn:hover{background:#1e2535}
+  .tab-btn.active{background:#1e3a5f;color:#38bdf8;border-color:#38bdf8}
+  .logout-btn{padding:5px 10px;border-radius:7px;background:transparent;color:#475569;border:1px solid #1e293b;font-size:11px;cursor:pointer;margin-left:8px}
+
+  .main{display:grid;flex:1;overflow:hidden}
+  .main.split{grid-template-columns:380px 1fr}
+  .main.full{grid-template-columns:1fr}
+
+  .left-panel{border-right:1px solid #1a2035;overflow-y:auto;padding:18px;background:#0d1220}
+  .right-panel{overflow-y:auto;padding:18px;background:#0c0f1a}
+
+  .section-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:#38bdf8;margin-bottom:14px;letter-spacing:.5px}
+  .label{font-size:11px;color:#64748b;font-weight:600;letter-spacing:.5px;display:block;margin-bottom:4px}
+  .input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #1e293b;background:#0f172a;color:#e2e8f0;font-size:13px}
+  .input-sm{padding:7px 9px;font-size:12px}
+  .field{margin-bottom:11px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .revenue-box{background:#0f172a;border-radius:10px;padding:10px 14px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;border:1px solid #1e293b}
+  .profit-grid{background:#0f172a;border-radius:10px;padding:10px 14px;margin-bottom:14px;border:1px solid #1e293b;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center}
+  .add-btn{width:100%;padding:11px;border-radius:10px;background:#0284c7;color:#fff;border:none;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s}
+  .add-btn:hover:not(:disabled){background:#0369a1;transform:translateY(-1px)}
+  .add-btn:disabled{background:#1e3a5f;cursor:not-allowed}
+
+  /* Line items */
+  .li-row{display:grid;grid-template-columns:1fr 76px 22px;gap:6px;margin-bottom:6px}
+  .li-add{font-size:11px;color:#38bdf8;background:none;border:none;cursor:pointer;font-weight:600}
+  .li-remove{background:none;border:none;color:#475569;cursor:pointer;font-size:16px}
+
+  /* Params */
+  .range-row{margin-bottom:16px}
+  .range-header{display:flex;justify-content:space-between;margin-bottom:4px}
+  input[type=range]{width:100%;accent-color:#0ea5e9}
+
+  /* Schedule grid */
+  .day-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+  .day-card{background:#0f172a;border-radius:10px;padding:9px 10px;border:1px solid #1a2035;text-align:center}
+  .week-grid{background:#0f172a;border-radius:14px;border:1px solid #1a2035;overflow:hidden}
+  .grid-header{display:grid;grid-template-columns:58px repeat(5,1fr);border-bottom:1px solid #1a2035}
+  .grid-header-cell{padding:9px 6px;text-align:center;font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;border-right:1px solid #1a2035}
+  .grid-row{display:grid;grid-template-columns:58px repeat(5,1fr);border-bottom:1px solid #111827;min-height:52px}
+  .time-cell{padding:5px 7px;border-right:1px solid #1a2035;display:flex;align-items:flex-start;justify-content:flex-end}
+  .slot-cell{border-right:1px solid #111827;padding:3px;position:relative;cursor:pointer;transition:background .15s}
+  .slot-cell:hover{background:rgba(56,189,248,.07)}
+  .job-chip{border-radius:7px;padding:4px 7px;cursor:pointer;transition:all .15s;position:relative}
+  .job-chip:hover{transform:translateY(-1px);filter:brightness(1.1)}
+
+  /* Banners */
+  .ai-banner{background:#1e3a5f;border-radius:12px;padding:11px 16px;margin-bottom:14px;border:1px solid #0ea5e9;display:flex;align-items:center;gap:10px}
+  .rec-banner{background:linear-gradient(135deg,#0f2744,#0f1f3d);border-radius:12px;padding:13px 16px;margin-bottom:14px;border:1px solid #1e4976}
+  .score-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+  .score-bar-bg{height:4px;background:#1e293b;border-radius:2px;overflow:hidden;margin-top:3px}
+  .score-bar{height:100%;border-radius:2px;transition:width .8s ease}
+
+  .pulse{animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .slide-in{animation:slideIn .3s ease}
+  @keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+  .empty-state{text-align:center;padding-top:50px;color:#334155}
+  .legend{margin-top:10px;font-size:10px;color:#334155}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">⚡</div>
+    <div class="login-title">JobSlot AI</div>
+    <div class="login-sub">KEEP IT PRISTINE SCHEDULING</div>
+    <input class="login-input" type="password" id="pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <div class="header">
+    <div class="header-logo">⚡</div>
+    <div>
+      <div class="header-title">JobSlot AI</div>
+      <div class="header-sub">SMART SCHEDULE OPTIMIZER</div>
+    </div>
+    <button class="sync-btn" id="sync-btn" onclick="syncJobber()">⟳ Sync Jobber</button>
+    <span id="sync-status-pill" style="display:none" class="sync-status"></span>
+    <div id="last-sync-label" style="font-size:10px;color:#334155;margin-left:8px"></div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="setTab('add')">＋ Add Job</button>
+      <button class="tab-btn" onclick="setTab('params')">⚙ Params</button>
+      <button class="tab-btn" onclick="setTab('schedule')">📅 Schedule</button>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">Sign out</button>
+  </div>
+
+  <div class="main split" id="main-area" style="height:calc(100vh - 65px)">
+    <!-- LEFT -->
+    <div class="left-panel" id="left-panel">
+
+      <!-- ADD JOB -->
+      <div id="tab-add">
+        <div class="section-title">NEW JOB</div>
+        <div class="field"><label class="label">JOB NAME / CLIENT</label><input class="input" id="job-name" placeholder="e.g. Smith Residence"></div>
+        <div class="field"><label class="label">SERVICE ADDRESS</label><input class="input" id="job-address" placeholder="123 Main St, City"></div>
+        <div class="field">
+          <label class="label">SERVICE TYPE</label>
+          <select class="input" id="job-service">
+            <option>Pressure Washing</option><option>Soft Washing</option><option>Window Cleaning</option>
+            <option>Restoration</option><option>Low Moisture Carpet Cleaning</option><option>Electrical</option>
+          </select>
+        </div>
+        <div class="grid2">
+          <div class="field"><label class="label">EST. HOURS</label><input class="input" type="number" id="job-hours" value="2" min=".5" max="12" step=".5"></div>
+          <div class="field"><label class="label">MILES FROM BASE</label><input class="input" type="number" id="job-miles" value="0" min="0" max="100"></div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label class="label">PREF. DAY</label>
+            <select class="input" id="job-pref-day">
+              <option value="">Any</option><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label">PREF. TIME</label>
+            <select class="input" id="job-pref-time">
+              <option value="">Any</option><option>Morning (7–11AM)</option><option>Afternoon (12–3PM)</option><option>Late (3–6PM)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label class="label" style="margin:0">LINE ITEMS</label>
+          <button class="li-add" onclick="addLineItem()">+ Add</button>
+        </div>
+        <div id="line-items"></div>
+
+        <div class="revenue-box">
+          <span style="font-size:12px;color:#64748b">Total Revenue</span>
+          <span id="total-revenue" style="font-weight:700;font-size:16px;color:#4ade80">$0</span>
+        </div>
+        <div class="profit-grid" id="profit-grid" style="display:none">
+          <div><div style="font-size:10px;color:#64748b;margin-bottom:2px">Labor</div><div id="labor-cost" style="font-weight:700;color:#f87171;font-size:14px"></div></div>
+          <div><div style="font-size:10px;color:#64748b;margin-bottom:2px">Drive</div><div id="drive-cost" style="font-weight:700;color:#fbbf24;font-size:14px"></div></div>
+          <div><div style="font-size:10px;color:#64748b;margin-bottom:2px">Profit</div><div id="est-profit" style="font-weight:700;color:#4ade80;font-size:14px"></div></div>
+        </div>
+        <button class="add-btn" id="add-btn" onclick="addJob()">⚡ Add &amp; Auto-Schedule</button>
+      </div>
+
+      <!-- PARAMS -->
+      <div id="tab-params" style="display:none">
+        <div class="section-title">BUSINESS PARAMETERS</div>
+        <div class="range-row">
+          <div class="range-header"><label class="label" style="margin:0">LABOR RATE ($/HR/PERSON)</label><span id="lbl-labor" style="font-size:12px;font-weight:600">$65</span></div>
+          <input type="range" min="1" max="200" value="65" id="p-labor" oninput="updateParam('labor',this.value)">
+        </div>
+        <div class="range-row">
+          <div class="range-header"><label class="label" style="margin:0">CREW SIZE</label><span id="lbl-crew" style="font-size:12px;font-weight:600">2</span></div>
+          <input type="range" min="1" max="10" value="2" id="p-crew" oninput="updateParam('crew',this.value)">
+        </div>
+        <div class="range-row">
+          <div class="range-header"><label class="label" style="margin:0">FUEL COST ($/MILE)</label><span id="lbl-fuel" style="font-size:12px;font-weight:600">$0.21</span></div>
+          <input type="range" min="0.05" max="1" step="0.01" value="0.21" id="p-fuel" oninput="updateParam('fuel',this.value)">
+        </div>
+        <div class="range-row">
+          <div class="range-header"><label class="label" style="margin:0">WORKDAY START</label><span id="lbl-start" style="font-size:12px;font-weight:600">7:00 AM</span></div>
+          <input type="range" min="5" max="12" value="7" id="p-start" oninput="updateParam('start',this.value)">
+        </div>
+        <div class="range-row">
+          <div class="range-header"><label class="label" style="margin:0">WORKDAY END</label><span id="lbl-end" style="font-size:12px;font-weight:600">6:00 PM</span></div>
+          <input type="range" min="14" max="22" value="18" id="p-end" oninput="updateParam('end',this.value)">
+        </div>
+
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid #1a2035">
+          <div class="section-title">JOBBER CONNECTION</div>
+          <label class="label">RENDER PROXY URL</label>
+          <input class="input" id="proxy-url-input" value="https://jobslot-proxy.onrender.com" style="margin-bottom:8px">
+          <div style="font-size:11px;color:#475569;line-height:1.6;margin-bottom:10px">This is pre-configured. Only change if you redeploy the server.</div>
+          <button onclick="syncJobber()" style="width:100%;padding:9px;border-radius:8px;background:#064e3b;color:#4ade80;border:none;font-weight:700;font-size:13px;cursor:pointer">⟳ Sync Now</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT (Schedule) -->
+    <div class="right-panel" id="right-panel">
+      <div id="ai-banner" style="display:none" class="ai-banner pulse">
+        <span style="font-size:16px">🤖</span>
+        <span style="font-size:13px;color:#7dd3fc">Analyzing profit, drive time &amp; existing Jobber jobs to find the optimal slot...</span>
+      </div>
+      <div id="rec-banner" style="display:none" class="rec-banner slide-in"></div>
+      <div class="day-summary" id="day-summary"></div>
+      <div class="week-grid" id="week-grid"></div>
+      <div class="legend">🔒 = Synced from Jobber (locked) &nbsp;|&nbsp; Click non-Jobber jobs to unschedule</div>
+      <div class="empty-state" id="empty-state">
+        <div style="font-size:36px;margin-bottom:10px">📋</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;margin-bottom:5px">No jobs yet</div>
+        <div style="font-size:12px">Sync from Jobber or add a new job to get started</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PASSWORD = "PristineSchedule";
+const PROXY_URL = "https://jobslot-proxy.onrender.com";
+const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
+const SHORT_DAYS = ["MON","TUE","WED","THU","FRI"];
+const SLOT_HOURS = [7,8,9,10,11,12,13,14,15,16,17];
+const SERVICE_COLORS = {
+  "Pressure Washing":{bg:"#0ea5e9",text:"#fff"},
+  "Soft Washing":{bg:"#22c55e",text:"#fff"},
+  "Window Cleaning":{bg:"#a78bfa",text:"#fff"},
+  "Restoration":{bg:"#f97316",text:"#fff"},
+  "Low Moisture Carpet Cleaning":{bg:"#ec4899",text:"#fff"},
+  "Electrical":{bg:"#eab308",text:"#000"},
+};
+const PARAMS = {labor:65,crew:2,fuel:0.21,start:7,end:18};
+let jobs = [], schedule = {}, lineItems = [{desc:"",cost:0}];
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+function doLogin(){
+  const pw = document.getElementById("pw-input").value;
+  if(pw === PASSWORD){
+    sessionStorage.setItem("kip_auth","1");
+    document.getElementById("login-screen").style.display="none";
+    document.getElementById("app-screen").style.display="flex";
+    renderLineItems(); renderGrid(); renderDaySummary();
+  } else {
+    document.getElementById("login-error").textContent="Incorrect password. Try again.";
+  }
+}
+function doLogout(){
+  sessionStorage.removeItem("kip_auth");
+  location.reload();
+}
+if(sessionStorage.getItem("kip_auth")==="1"){
+  document.getElementById("login-screen").style.display="none";
+  document.getElementById("app-screen").style.display="flex";
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────
+function setTab(t){
+  ["add","params","schedule"].forEach(x=>{
+    const el = document.getElementById("tab-"+x);
+    if(el) el.style.display = x===t?"block":"none";
+  });
+  document.querySelectorAll(".tab-btn").forEach((b,i)=>{
+    b.classList.toggle("active",["add","params","schedule"][i]===t);
+  });
+  const isSchedule = t==="schedule";
+  document.getElementById("main-area").className = "main " + (isSchedule?"full":"split");
+  document.getElementById("left-panel").style.display = isSchedule?"none":"block";
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function fmtHour(h){const s=h>=12?"PM":"AM",d=h>12?h-12:h===0?12:h;return `${d}:00 ${s}`}
+function calcProfit(j){return j.revenue - j.estimatedHours*PARAMS.labor*PARAMS.crew - j.distanceMiles*2*PARAMS.fuel}
+function getJobById(id){return jobs.find(j=>j.id===id)}
+function getJobsForDay(d){
+  return Object.entries(schedule).filter(([k])=>k.startsWith(d))
+    .map(([k,id])=>({key:k,hour:parseInt(k.split("-")[1]),job:getJobById(id)}))
+    .filter(x=>x.job).sort((a,b)=>a.hour-b.hour);
+}
+
+// ── Params ────────────────────────────────────────────────────────────────
+function updateParam(k,v){
+  PARAMS[k]=parseFloat(v);
+  const labels={labor:`$${v}`,crew:v,fuel:`$${parseFloat(v).toFixed(2)}`,
+    start:fmtHour(parseInt(v)),end:fmtHour(parseInt(v))};
+  document.getElementById("lbl-"+k).textContent=labels[k];
+  updateProfitPreview();
+}
+
+// ── Line Items ────────────────────────────────────────────────────────────
+function renderLineItems(){
+  const c=document.getElementById("line-items"); c.innerHTML="";
+  lineItems.forEach((li,i)=>{
+    const row=document.createElement("div"); row.className="li-row";
+    row.innerHTML=`<input class="input input-sm" placeholder="Description" value="${li.desc||""}" oninput="lineItems[${i}].desc=this.value">
+      <input class="input input-sm" type="number" placeholder="$0" value="${li.cost||""}" oninput="lineItems[${i}].cost=parseFloat(this.value)||0;updateProfitPreview()">
+      <button class="li-remove" onclick="removeLineItem(${i})">×</button>`;
+    c.appendChild(row);
+  });
+  updateProfitPreview();
+}
+function addLineItem(){lineItems.push({desc:"",cost:0});renderLineItems()}
+function removeLineItem(i){lineItems.splice(i,1);renderLineItems()}
+function updateProfitPreview(){
+  const rev=lineItems.reduce((s,i)=>s+Number(i.cost||0),0);
+  document.getElementById("total-revenue").textContent=`$${rev.toLocaleString()}`;
+  const hours=parseFloat(document.getElementById("job-hours").value)||2;
+  const miles=parseFloat(document.getElementById("job-miles").value)||0;
+  const labor=hours*PARAMS.labor*PARAMS.crew;
+  const drive=miles*2*PARAMS.fuel;
+  const profit=rev-labor-drive;
+  const pg=document.getElementById("profit-grid");
+  if(rev>0){
+    pg.style.display="grid";
+    document.getElementById("labor-cost").textContent=`$${labor.toFixed(0)}`;
+    document.getElementById("drive-cost").textContent=`$${drive.toFixed(0)}`;
+    document.getElementById("est-profit").textContent=`$${profit.toFixed(0)}`;
+  } else { pg.style.display="none"; }
+}
+
+// ── Add Job ───────────────────────────────────────────────────────────────
+async function addJob(){
+  const name=document.getElementById("job-name").value.trim();
+  const address=document.getElementById("job-address").value.trim();
+  if(!name||!address){alert("Please enter a job name and address.");return;}
+  const revenue=lineItems.reduce((s,i)=>s+Number(i.cost||0),0);
+  const job={
+    id:Date.now(),name,
+    service:document.getElementById("job-service").value,
+    address,
+    estimatedHours:parseFloat(document.getElementById("job-hours").value)||2,
+    distanceMiles:parseFloat(document.getElementById("job-miles").value)||0,
+    preferredDay:document.getElementById("job-pref-day").value,
+    preferredTime:document.getElementById("job-pref-time").value,
+    revenue, lineItems:[...lineItems]
+  };
+  jobs.push(job);
+  document.getElementById("job-name").value="";
+  document.getElementById("job-address").value="";
+  lineItems=[{desc:"",cost:0}];renderLineItems();
+  document.getElementById("add-btn").disabled=true;
+  document.getElementById("add-btn").textContent="🤖 Finding Best Slot...";
+  setTab("schedule");
+  await runAI(job);
+  document.getElementById("add-btn").disabled=false;
+  document.getElementById("add-btn").textContent="⚡ Add & Auto-Schedule";
+}
+
+// ── AI Scheduling ─────────────────────────────────────────────────────────
+async function runAI(job){
+  document.getElementById("ai-banner").style.display="flex";
+  document.getElementById("rec-banner").style.display="none";
+  document.getElementById("empty-state").style.display="none";
+
+  const scheduledSummary = Object.entries(schedule).map(([key,jobId])=>{
+    const j=getJobById(jobId);
+    return j?`${key}: ${j.name} (${j.estimatedHours}h, $${calcProfit(j).toFixed(0)} profit)`:null;
+  }).filter(Boolean).join(", ");
+
+  const prompt=`You are a field service scheduling optimizer for a company that does: Pressure Washing, Soft Washing, Window Cleaning, Restoration, Low Moisture Carpet Cleaning, Electrical.
+
+Business parameters:
+- Labor rate: $${PARAMS.labor}/hr per person, crew size: ${PARAMS.crew}
+- Fuel cost: $${PARAMS.fuel}/mile
+- Workday: ${fmtHour(PARAMS.start)} to ${fmtHour(PARAMS.end)}
+
+New job to schedule:
+- Name: ${job.name}
+- Service: ${job.service}
+- Address: ${job.address}
+- Duration: ${job.estimatedHours} hours
+- Revenue: $${job.revenue}
+- Distance: ${job.distanceMiles} miles
+- Profit: $${calcProfit(job).toFixed(2)}
+- Client preferred day: ${job.preferredDay||"flexible"}
+- Client preferred time: ${job.preferredTime||"flexible"}
+
+CURRENT SCHEDULE (do not double-book):
+${scheduledSummary||"Empty"}
+
+Priorities: 1) Max profit/day  2) Min drive time  3) Client preference
+
+Respond ONLY in valid JSON, no markdown:
+{"day":"Monday","startHour":9,"reason":"2-3 sentence explanation","profitScore":85,"driveScore":72,"preferenceScore":60,"warnings":[]}`;
+
+  try{
+    const res=await fetch(ANTHROPIC_API,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})
+    });
+    const data=await res.json();
+    const text=data.content.map(c=>c.text||"").join("");
+    const rec=JSON.parse(text.replace(/```json|```/g,"").trim());
+    const key=`${rec.day.toUpperCase().slice(0,3)}-${rec.startHour}`;
+    schedule[key]=job.id;
+    showRecommendation(rec,job);
+  }catch(e){
+    showRecommendation({error:"Could not analyze — please try again."},job);
+  }
+  document.getElementById("ai-banner").style.display="none";
+  renderGrid(); renderDaySummary();
+}
+
+function showRecommendation(rec,job){
+  const b=document.getElementById("rec-banner");
+  b.style.display="block";
+  if(rec.error){b.innerHTML=`<span style="color:#f87171">⚠ ${rec.error}</span>`;return;}
+  b.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+      <span>✅</span>
+      <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:#38bdf8">Scheduled: ${rec.day} @ ${fmtHour(rec.startHour)}</span>
+      <span style="margin-left:auto;font-size:11px;background:#0f172a;padding:2px 8px;border-radius:6px;color:#94a3b8">${job.name}</span>
+    </div>
+    <p style="font-size:12px;color:#94a3b8;margin-bottom:10px;line-height:1.5">${rec.reason||""}</p>
+    <div class="score-row">
+      ${[["Profit",rec.profitScore,"#4ade80"],["Drive",rec.driveScore,"#60a5fa"],["Preference",rec.preferenceScore,"#c084fc"]].map(([l,s,c])=>`
+        <div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:10px;color:#64748b">${l}</span><span style="font-size:10px;font-weight:700;color:${c}">${s}/100</span></div>
+          <div class="score-bar-bg"><div class="score-bar" style="width:${s}%;background:${c}"></div></div>
+        </div>`).join("")}
+    </div>
+    ${rec.warnings?.length?`<div style="margin-top:8px;padding:5px 10px;background:#2d1f00;border-radius:6px;font-size:11px;color:#fbbf24">⚠ ${rec.warnings.join(" · ")}</div>`:""}
+  `;
+}
+
+// ── Jobber Sync ───────────────────────────────────────────────────────────
+async function syncJobber(){
+  const url=(document.getElementById("proxy-url-input").value||PROXY_URL).replace(/\/$/,"");
+  const btn=document.getElementById("sync-btn");
+  const pill=document.getElementById("sync-status-pill");
+  btn.disabled=true; btn.textContent="⟳ Syncing...";
+  pill.style.display="none";
+  try{
+    const res=await fetch(`${url}/jobber/schedule`);
+    if(!res.ok) throw new Error(`Server returned ${res.status}`);
+    const data=await res.json();
+    if(!data.success) throw new Error(data.error||"Unknown error");
+    data.jobs.forEach(jj=>{
+      if(!jobs.find(j=>j.id===jj.id)) jobs.push(jj);
+      if(jj.scheduledDay&&jj.scheduledHour!==null) schedule[`${jj.scheduledDay}-${jj.scheduledHour}`]=jj.id;
+    });
+    pill.className="sync-status sync-ok";
+    pill.textContent=`✓ Synced ${data.jobs.length} job${data.jobs.length!==1?"s":""}`;
+    pill.style.display="inline-block";
+    document.getElementById("last-sync-label").textContent=`Last sync: ${new Date().toLocaleTimeString()}`;
+    renderGrid(); renderDaySummary();
+    if(jobs.length>0) document.getElementById("empty-state").style.display="none";
+  }catch(err){
+    pill.className="sync-status sync-err";
+    pill.textContent=`✗ ${err.message}`;
+    pill.style.display="inline-block";
+  }
+  btn.disabled=false; btn.textContent="⟳ Sync Jobber";
+  setTimeout(()=>pill.style.display="none",5000);
+}
+
+// ── Render Grid ───────────────────────────────────────────────────────────
+function renderGrid(){
+  const g=document.getElementById("week-grid"); g.innerHTML="";
+  // Header
+  const hdr=document.createElement("div"); hdr.className="grid-header";
+  hdr.innerHTML=`<div style="padding:10px;border-right:1px solid #1a2035"></div>`+
+    SHORT_DAYS.map(d=>`<div class="grid-header-cell">${d}</div>`).join("");
+  g.appendChild(hdr);
+  // Rows
+  SLOT_HOURS.forEach(hour=>{
+    const row=document.createElement("div"); row.className="grid-row";
+    row.innerHTML=`<div class="time-cell"><span style="font-size:10px;color:#334155;font-weight:600">${fmtHour(hour)}</span></div>`;
+    SHORT_DAYS.forEach(day=>{
+      const key=`${day}-${hour}`;
+      const jobId=schedule[key];
+      const job=jobId?getJobById(jobId):null;
+      const cell=document.createElement("div"); cell.className="slot-cell";
+      if(job){
+        const color=SERVICE_COLORS[job.service]||{bg:"#0ea5e9",text:"#fff"};
+        const isJobber=job.fromJobber;
+        const chip=document.createElement("div");
+        chip.className="job-chip";
+        chip.style.cssText=`background:${color.bg};${isJobber?"border:2px solid rgba(255,255,255,.4)":""}`;
+        chip.title=isJobber?"Jobber job (locked)":"Click to unschedule";
+        chip.innerHTML=`${isJobber?`<span style="position:absolute;top:2px;right:4px;font-size:8px;opacity:.8">🔒</span>`:""}
+          <div style="font-size:10px;font-weight:700;color:${color.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:${isJobber?10:0}px">${job.name}</div>
+          <div style="font-size:9px;color:${color.text}bb;margin-top:1px">${job.estimatedHours}h · $${calcProfit(job).toFixed(0)}p</div>`;
+        if(!isJobber) chip.onclick=()=>{delete schedule[key];renderGrid();renderDaySummary()};
+        cell.appendChild(chip);
+      }
+      row.appendChild(cell);
+    });
+    g.appendChild(row);
+  });
+  if(jobs.length>0) document.getElementById("empty-state").style.display="none";
+}
+
+function renderDaySummary(){
+  const c=document.getElementById("day-summary"); c.innerHTML="";
+  SHORT_DAYS.forEach(day=>{
+    const dayJobs=getJobsForDay(day);
+    const profit=dayJobs.reduce((s,{job})=>s+calcProfit(job),0);
+    const jbCount=dayJobs.filter(x=>x.job.fromJobber).length;
+    const d=document.createElement("div"); d.className="day-card";
+    d.innerHTML=`<div style="font-size:10px;color:#475569;font-weight:700;letter-spacing:1px;margin-bottom:3px">${day}</div>
+      <div style="font-size:15px;font-weight:700;color:${profit>0?"#4ade80":"#334155"}">$${profit.toFixed(0)}</div>
+      <div style="font-size:9px;color:#475569">${dayJobs.length} job${dayJobs.length!==1?"s":""}${jbCount>0?` (${jbCount} Jobber)`:""}</div>`;
+    c.appendChild(d);
+  });
+}
+
+// Init
+renderLineItems(); renderGrid(); renderDaySummary();
+document.getElementById("job-hours").addEventListener("input",updateProfitPreview);
+document.getElementById("job-miles").addEventListener("input",updateProfitPreview);
+</script>
+</body>
+</html>
