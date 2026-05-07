@@ -63,7 +63,7 @@ app.get("/jobber/schedule", async (req, res) => {
     console.log(`Syncing Jobber directly: ${gte} → ${lte}`);
 
     const query = `{
-      visits(filter: { startAt: { gte: "${gte}", lte: "${lte}" } }) {
+      visits(filter: { startAt: { after: "${gte}", before: "${lte}" } }) {
         nodes {
           id
           title
