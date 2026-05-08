@@ -1,17 +1,21 @@
-// JobSlot AI — Jobber Proxy Server v5
-// Calls Jobber GraphQL API directly — no Make.com needed
-// Deploy to Render.com with JOBBER_ACCESS_TOKEN environment variable
+// JobSlot AI — Jobber Proxy Server v6
+// Auto-refreshes Jobber access token using Client ID + Client Secret
+// Never need to manually copy tokens again
 
 const express = require("express");
 const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const JOBBER_ACCESS_TOKEN = process.env.JOBBER_ACCESS_TOKEN;
+const JOBBER_CLIENT_ID     = process.env.JOBBER_CLIENT_ID;
+const JOBBER_CLIENT_SECRET = process.env.JOBBER_CLIENT_SECRET;
+let   JOBBER_ACCESS_TOKEN  = process.env.JOBBER_ACCESS_TOKEN;
+let   tokenExpiry          = 0;
+
 const JOBBER_API_URL      = "https://api.getjobber.com/api/graphql";
+const JOBBER_TOKEN_URL    = "https://api.getjobber.com/api/oauth/token";
 const JOBBER_API_VERSION  = "2025-04-16";
 
-// Permissive CORS
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -21,7 +25,35 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+async function getValidToken() {
+  if (JOBBER_ACCESS_TOKEN && Date.now() < tokenExpiry - 120000) {
+    return JOBBER_ACCESS_TOKEN;
+  }
+  console.log("Refreshing Jobber access token...");
+  if (!JOBBER_CLIENT_ID || !JOBBER_CLIENT_SECRET) {
+    throw new Error("JOBBER_CLIENT_ID and JOBBER_CLIENT_SECRET must be set in environment variables.");
+  }
+  const res = await fetch(JOBBER_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type:    "client_credentials",
+      client_id:     JOBBER_CLIENT_ID,
+      client_secret: JOBBER_CLIENT_SECRET,
+    }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Token refresh failed (${res.status}): ${txt.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  JOBBER_ACCESS_TOKEN = data.access_token;
+  const expiresIn = data.expires_in || 3300;
+  tokenExpiry = Date.now() + expiresIn * 1000;
+  console.log(`Token refreshed. Expires in ${expiresIn}s`);
+  return JOBBER_ACCESS_TOKEN;
+}
+
 function getWeekRange(date) {
   const d = new Date(date);
   const day = d.getUTCDay();
@@ -35,40 +67,32 @@ function getWeekRange(date) {
   return { gte: mon.toISOString(), lte: fri.toISOString() };
 }
 
-// ── Health check ───────────────────────────────────────────────────────────
 app.get("/", (req, res) => {
   const { gte, lte } = getWeekRange(new Date());
   res.json({
-    status: "JobSlot AI Proxy running v5 — direct Jobber API",
+    status: "JobSlot AI Proxy running v6 — auto token refresh",
     timestamp: new Date().toISOString(),
     currentWeek: { gte, lte },
-    tokenConfigured: !!JOBBER_ACCESS_TOKEN,
+    clientIdConfigured: !!JOBBER_CLIENT_ID,
+    clientSecretConfigured: !!JOBBER_CLIENT_SECRET,
+    tokenExpiry: tokenExpiry ? new Date(tokenExpiry).toISOString() : "not set",
   });
 });
 
-// ── Serve the scheduling app ───────────────────────────────────────────────
 app.get("/app", (req, res) => {
   res.sendFile(path.join(__dirname, "app.html"));
 });
 
-// ── Main sync endpoint ─────────────────────────────────────────────────────
 app.get("/jobber/schedule", async (req, res) => {
-  if (!JOBBER_ACCESS_TOKEN) {
-    return res.status(500).json({ error: "JOBBER_ACCESS_TOKEN environment variable not set." });
-  }
-
   try {
+    const token = await getValidToken();
     const targetDate = req.query.week ? new Date(req.query.week) : new Date();
     const { gte, lte } = getWeekRange(targetDate);
-    console.log(`Syncing Jobber directly: ${gte} → ${lte}`);
-
+    console.log(`Syncing Jobber: ${gte} → ${lte}`);
     const query = `{
       visits(filter: { startAt: { after: "${gte}", before: "${lte}" } }) {
         nodes {
-          id
-          title
-          startAt
-          duration
+          id title startAt duration
           client { name }
           property { address { street city postalCode } }
           lineItems { nodes { name unitPrice quantity } }
@@ -76,43 +100,39 @@ app.get("/jobber/schedule", async (req, res) => {
         }
       }
     }`;
-
     const jobberRes = await fetch(JOBBER_API_URL, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${JOBBER_ACCESS_TOKEN}`,
+        "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json",
         "X-JOBBER-GRAPHQL-VERSION": JOBBER_API_VERSION,
       },
       body: JSON.stringify({ query }),
     });
-
     if (!jobberRes.ok) {
       const errText = await jobberRes.text();
       throw new Error(`Jobber API returned ${jobberRes.status}: ${errText.slice(0, 200)}`);
     }
-
     const raw = await jobberRes.json();
-
     if (raw.errors) {
-      throw new Error(`Jobber GraphQL error: ${raw.errors[0]?.message || "Unknown"}`);
+      const msg = raw.errors[0]?.message || "Unknown GraphQL error";
+      if (msg.toLowerCase().includes("throttl")) {
+        return res.status(429).json({ error: "Jobber rate limit hit. Please wait 2 minutes and try again." });
+      }
+      throw new Error(`Jobber GraphQL error: ${msg}`);
     }
-
     const nodes = raw?.data?.visits?.nodes || [];
     const jobs = normalizeJobberResponse(nodes);
     console.log(`Returning ${jobs.length} jobs`);
     res.json({ success: true, weekStart: gte, weekEnd: lte, count: jobs.length, jobs });
-
   } catch (err) {
     console.error("Sync error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ── Normalize Jobber → JobSlot AI format ──────────────────────────────────
 function normalizeJobberResponse(nodes) {
   const DAY_MAP = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-
   return nodes.map((item) => {
     const start     = item.startAt ? new Date(item.startAt) : null;
     const dayShort  = start ? DAY_MAP[start.getUTCDay()] : null;
@@ -123,26 +143,15 @@ function normalizeJobberResponse(nodes) {
     const revenue   = parseFloat(item.job?.total || liTotal || 0);
     const addr      = item.property?.address;
     const address   = addr ? [addr.street, addr.city, addr.postalCode].filter(Boolean).join(", ") : "";
-
     return {
-      id:             item.id,
-      name:           item.client?.name || item.title || "Jobber Job",
-      service:        item.lineItems?.nodes?.[0]?.name || "Service",
-      address,
-      revenue,
-      estimatedHours: estHours,
-      distanceMiles:  0,
-      preferredDay:   "",
-      preferredTime:  "",
-      lineItems:      (item.lineItems?.nodes || []).map(li => ({
-        desc: li.name,
-        cost: parseFloat(li.unitPrice || 0),
-      })),
-      scheduledDay:   dayShort,
-      scheduledHour:  startHour,
-      fromJobber:     true,
+      id: item.id, name: item.client?.name || item.title || "Jobber Job",
+      service: item.lineItems?.nodes?.[0]?.name || "Service",
+      address, revenue, estimatedHours: estHours, distanceMiles: 0,
+      preferredDay: "", preferredTime: "",
+      lineItems: (item.lineItems?.nodes || []).map(li => ({ desc: li.name, cost: parseFloat(li.unitPrice || 0) })),
+      scheduledDay: dayShort, scheduledHour: startHour, fromJobber: true,
     };
   }).filter(j => j.scheduledDay && j.scheduledHour !== null);
 }
 
-app.listen(PORT, () => console.log(`JobSlot AI Proxy v5 on port ${PORT}`));
+app.listen(PORT, () => console.log(`JobSlot AI Proxy v6 on port ${PORT}`));
