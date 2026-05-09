@@ -212,11 +212,12 @@ app.get("/jobber/schedule", async (req, res) => {
     const query = `{
       visits(filter: { startAt: { after: "${gte}", before: "${lte}" } }) {
         nodes {
-          id title startAt duration
+          id
+          title
+          startAt
+          duration
           client { name }
-          property { address { street city postalCode } }
-          lineItems { nodes { name unitPrice quantity } }
-          job { id jobNumber total }
+          job { total }
         }
       }
     }`;
@@ -271,17 +272,13 @@ function normalizeJobberResponse(nodes) {
     const dayShort  = start ? DAY_MAP[start.getUTCDay()] : null;
     const startHour = start ? start.getUTCHours() : null;
     const estHours  = item.duration ? Math.round((item.duration / 3600) * 2) / 2 : 2;
-    const liTotal   = (item.lineItems?.nodes || []).reduce((s, li) =>
-      s + parseFloat(li.unitPrice || 0) * parseFloat(li.quantity || 1), 0);
-    const revenue   = parseFloat(item.job?.total || liTotal || 0);
-    const addr      = item.property?.address;
-    const address   = addr ? [addr.street, addr.city, addr.postalCode].filter(Boolean).join(", ") : "";
+    const revenue   = parseFloat(item.job?.total || 0);
+    const address   = "";
     return {
       id: item.id, name: item.client?.name || item.title || "Jobber Job",
-      service: item.lineItems?.nodes?.[0]?.name || "Service",
+      service: "Jobber Job",
       address, revenue, estimatedHours: estHours, distanceMiles: 0,
-      preferredDay: "", preferredTime: "",
-      lineItems: (item.lineItems?.nodes || []).map(li => ({ desc: li.name, cost: parseFloat(li.unitPrice || 0) })),
+      preferredDay: "", preferredTime: "", lineItems: [],
       scheduledDay: dayShort, scheduledHour: startHour, fromJobber: true,
     };
   }).filter(j => j.scheduledDay && j.scheduledHour !== null);
