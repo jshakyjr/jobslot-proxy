@@ -1,48 +1,63 @@
-// JobSlot AI — Jobber Proxy Server v9
-// OAuth2 with file-based token persistence — survives Render sleep cycles
+// JobSlot AI — Jobber Proxy Server v10
+// Saves refresh token back to Render environment variables on every OAuth connect
+// Survives sleep cycles AND redeploys permanently
 
 const express = require("express");
 const path = require("path");
-const fs = require("fs");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 const JOBBER_CLIENT_ID     = process.env.JOBBER_CLIENT_ID;
 const JOBBER_CLIENT_SECRET = process.env.JOBBER_CLIENT_SECRET;
+const RENDER_API_KEY       = process.env.RENDER_API_KEY;
+const RENDER_SERVICE_ID    = process.env.RENDER_SERVICE_ID;
 const JOBBER_API_URL       = "https://api.getjobber.com/api/graphql";
 const JOBBER_TOKEN_URL     = "https://api.getjobber.com/api/oauth/token";
 const JOBBER_AUTH_URL      = "https://api.getjobber.com/api/oauth/authorize";
 const JOBBER_API_VERSION   = "2025-04-16";
-const TOKEN_FILE           = path.join(__dirname, ".jobber_tokens.json");
 
-// ── Token persistence ──────────────────────────────────────────────────────
-function loadTokens() {
+// In-memory token store — seeded from environment on startup
+let tokenStore = {
+  accessToken:  process.env.JOBBER_ACCESS_TOKEN  || null,
+  refreshToken: process.env.JOBBER_REFRESH_TOKEN || null,
+  expiresAt:    0,
+};
+
+// ── Save refresh token to Render env vars (survives redeploys) ─────────────
+async function saveTokensToRender(tokens) {
+  if (!RENDER_API_KEY || !RENDER_SERVICE_ID) {
+    console.log("Render API key or service ID not set — skipping persistent save.");
+    return;
+  }
   try {
-    if (fs.existsSync(TOKEN_FILE)) {
-      const data = JSON.parse(fs.readFileSync(TOKEN_FILE, "utf8"));
-      console.log("Tokens loaded from file.");
-      return data;
+    console.log("Saving tokens to Render environment variables...");
+    const res = await fetch(`https://api.render.com/v1/services/${RENDER_SERVICE_ID}/env-vars`, {
+      method: "PUT",
+      headers: {
+        "Authorization": `Bearer ${RENDER_API_KEY}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify([
+        { key: "JOBBER_ACCESS_TOKEN",  value: tokens.accessToken  || "" },
+        { key: "JOBBER_REFRESH_TOKEN", value: tokens.refreshToken || "" },
+        { key: "JOBBER_CLIENT_ID",     value: JOBBER_CLIENT_ID    || "" },
+        { key: "JOBBER_CLIENT_SECRET", value: JOBBER_CLIENT_SECRET|| "" },
+        { key: "RENDER_API_KEY",       value: RENDER_API_KEY      || "" },
+        { key: "RENDER_SERVICE_ID",    value: RENDER_SERVICE_ID   || "" },
+        { key: "MAKE_WEBHOOK_URL",     value: process.env.MAKE_WEBHOOK_URL || "" },
+      ]),
+    });
+    if (res.ok) {
+      console.log("Tokens saved to Render successfully.");
+    } else {
+      const txt = await res.text();
+      console.log("Render save failed:", res.status, txt.slice(0, 200));
     }
   } catch (e) {
-    console.log("Could not load token file:", e.message);
-  }
-  // Fall back to environment variable
-  return {
-    accessToken:  process.env.JOBBER_ACCESS_TOKEN || null,
-    refreshToken: process.env.JOBBER_REFRESH_TOKEN || null,
-    expiresAt:    0,
-  };
-}
-
-function saveTokens(tokens) {
-  try {
-    fs.writeFileSync(TOKEN_FILE, JSON.stringify(tokens, null, 2));
-  } catch (e) {
-    console.log("Could not save token file:", e.message);
+    console.log("Could not save to Render:", e.message);
   }
 }
-
-let tokenStore = loadTokens();
 
 // ── Token refresh ──────────────────────────────────────────────────────────
 async function refreshAccessToken() {
@@ -66,7 +81,7 @@ async function refreshAccessToken() {
   tokenStore.accessToken  = data.access_token;
   tokenStore.refreshToken = data.refresh_token || tokenStore.refreshToken;
   tokenStore.expiresAt    = Date.now() + (data.expires_in || 3300) * 1000;
-  saveTokens(tokenStore);
+  await saveTokensToRender(tokenStore);
   console.log("Token refreshed and saved.");
   return tokenStore.accessToken;
 }
@@ -108,11 +123,11 @@ app.use(express.json());
 app.get("/", (req, res) => {
   const { gte, lte } = getWeekRange(new Date());
   res.json({
-    status: "JobSlot AI Proxy v9 — persistent OAuth2",
+    status: "JobSlot AI Proxy v10 — permanent OAuth2",
     timestamp: new Date().toISOString(),
     currentWeek: { gte, lte },
     connected: !!tokenStore.refreshToken,
-    tokenExpiry: tokenStore.expiresAt ? new Date(tokenStore.expiresAt).toISOString() : "not set",
+    renderPersistenceEnabled: !!(RENDER_API_KEY && RENDER_SERVICE_ID),
   });
 });
 
@@ -138,9 +153,9 @@ app.get("/connect", (req, res) => {
 <body>
   <div class="box">
     <h1>⚡ JobSlot AI</h1>
-    <p>Connect your Jobber account once and your schedule syncs automatically forever — no tokens, no daily setup.</p>
+    <p>Connect your Jobber account once and your schedule syncs automatically forever.</p>
     ${connected
-      ? `<div class="connected">✅ Jobber is connected!<br><small style="opacity:.7">Tokens are saved and refresh automatically.</small></div>
+      ? `<div class="connected">✅ Jobber is connected!<br><small style="opacity:.7">Tokens are saved permanently.</small></div>
          <a href="/app" class="btn">Open Scheduler →</a>
          <div class="reconnect"><a href="/auth">Reconnect Jobber</a></div>`
       : `<a href="/auth" class="btn">Connect to Jobber →</a>`
@@ -150,22 +165,18 @@ app.get("/connect", (req, res) => {
 </html>`);
 });
 
-// ── OAuth Step 2 — Redirect to Jobber ─────────────────────────────────────
+// ── OAuth Step 2 ───────────────────────────────────────────────────────────
 app.get("/auth", (req, res) => {
-  if (!JOBBER_CLIENT_ID) {
-    return res.status(500).send("JOBBER_CLIENT_ID not configured.");
-  }
+  if (!JOBBER_CLIENT_ID) return res.status(500).send("JOBBER_CLIENT_ID not configured.");
   const redirectUri = "https://jobslot-proxy.onrender.com/auth/callback";
   const authUrl = `${JOBBER_AUTH_URL}?client_id=${JOBBER_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code`;
   res.redirect(authUrl);
 });
 
-// ── OAuth Step 3 — Callback ────────────────────────────────────────────────
+// ── OAuth Step 3 ───────────────────────────────────────────────────────────
 app.get("/auth/callback", async (req, res) => {
   const { code, error } = req.query;
-  if (error || !code) {
-    return res.send(`<h2 style="color:red;font-family:sans-serif">Authorization failed: ${error || "No code received"}</h2>`);
-  }
+  if (error || !code) return res.send(`<h2 style="color:red;font-family:sans-serif">Authorization failed: ${error || "No code"}</h2>`);
   try {
     const redirectUri = "https://jobslot-proxy.onrender.com/auth/callback";
     const tokenRes = await fetch(JOBBER_TOKEN_URL, {
@@ -187,8 +198,8 @@ app.get("/auth/callback", async (req, res) => {
     tokenStore.accessToken  = data.access_token;
     tokenStore.refreshToken = data.refresh_token;
     tokenStore.expiresAt    = Date.now() + (data.expires_in || 3300) * 1000;
-    saveTokens(tokenStore);
-    console.log("OAuth complete. Tokens saved to file.");
+    await saveTokensToRender(tokenStore);
+    console.log("OAuth complete. Tokens saved permanently to Render.");
     res.redirect("/connect");
   } catch (err) {
     console.error("OAuth callback error:", err.message);
@@ -238,7 +249,6 @@ app.get("/jobber/schedule", async (req, res) => {
     }
 
     const raw = await jobberRes.json();
-
     if (raw.errors) {
       const msg = raw.errors[0]?.message || "Unknown error";
       if (msg.toLowerCase().includes("throttl")) {
@@ -273,15 +283,14 @@ function normalizeJobberResponse(nodes) {
     const startHour = start ? start.getUTCHours() : null;
     const estHours  = item.duration ? Math.round((item.duration / 3600) * 2) / 2 : 2;
     const revenue   = parseFloat(item.job?.total || 0);
-    const address   = "";
     return {
       id: item.id, name: item.client?.name || item.title || "Jobber Job",
-      service: "Jobber Job",
-      address, revenue, estimatedHours: estHours, distanceMiles: 0,
+      service: "Jobber Job", address: "", revenue,
+      estimatedHours: estHours, distanceMiles: 0,
       preferredDay: "", preferredTime: "", lineItems: [],
       scheduledDay: dayShort, scheduledHour: startHour, fromJobber: true,
     };
   }).filter(j => j.scheduledDay && j.scheduledHour !== null);
 }
 
-app.listen(PORT, () => console.log(`JobSlot AI Proxy v9 on port ${PORT}`));
+app.listen(PORT, () => console.log(`JobSlot AI Proxy v10 on port ${PORT}`));
