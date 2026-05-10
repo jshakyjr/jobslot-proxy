@@ -207,6 +207,36 @@ app.get("/auth/callback", async (req, res) => {
   }
 });
 
+// ── Debug endpoint — see raw Jobber data ──────────────────────────────────
+app.get("/jobber/debug", async (req, res) => {
+  try {
+    const token = await getValidToken();
+    const { gte, lte } = getWeekRange(new Date());
+    const query = `{
+      visits(filter: { startAt: { after: "${gte}", before: "${lte}" } }) {
+        nodes {
+          id title startAt endAt duration
+          client { name }
+          job { total }
+        }
+      }
+    }`;
+    const jobberRes = await fetch(JOBBER_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "X-JOBBER-GRAPHQL-VERSION": JOBBER_API_VERSION,
+      },
+      body: JSON.stringify({ query }),
+    });
+    const raw = await jobberRes.json();
+    res.json(raw);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Serve app ──────────────────────────────────────────────────────────────
 app.get("/app", (req, res) => {
   res.sendFile(path.join(__dirname, "app.html"));
