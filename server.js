@@ -307,20 +307,40 @@ app.get("/jobber/schedule", async (req, res) => {
 // ── Normalize ──────────────────────────────────────────────────────────────
 function normalizeJobberResponse(nodes) {
   const DAY_MAP = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  // Eastern time offset: UTC-4 in summer (EDT), UTC-5 in winter (EST)
+  // Detect DST: EDT runs from 2nd Sunday in March to 1st Sunday in November
+  function getEasternOffset(date) {
+    const year = date.getUTCFullYear();
+    // 2nd Sunday in March
+    const mar = new Date(Date.UTC(year, 2, 1));
+    const dstStart = new Date(Date.UTC(year, 2, 8 + (7 - mar.getUTCDay()) % 7, 7));
+    // 1st Sunday in November
+    const nov = new Date(Date.UTC(year, 10, 1));
+    const dstEnd = new Date(Date.UTC(year, 10, 1 + (7 - nov.getUTCDay()) % 7, 6));
+    return (date >= dstStart && date < dstEnd) ? -4 : -5;
+  }
+
   return nodes.map((item) => {
-    const start     = item.startAt ? new Date(item.startAt) : null;
-    const dayShort  = start ? DAY_MAP[start.getUTCDay()] : null;
-    const startHour = start ? start.getUTCHours() : null;
-    const estHours  = item.duration ? Math.round((item.duration / 3600) * 2) / 2 : 2;
+    if (!item.startAt) return null;
+    const utcStart  = new Date(item.startAt);
+    const offset    = getEasternOffset(utcStart);
+    // Convert to Eastern local time
+    const localMs   = utcStart.getTime() + offset * 3600000;
+    const localDate = new Date(localMs);
+    const dayShort  = DAY_MAP[localDate.getUTCDay()];
+    const startHour = localDate.getUTCHours();
+    // Duration is in minutes
+    const estHours  = item.duration ? Math.round((item.duration / 60) * 2) / 2 : 2;
     const revenue   = parseFloat(item.job?.total || 0);
+    // Clean up title — remove address/description after client name
+    const name = item.client?.name || item.title?.split(" - ")[0] || "Jobber Job";
     return {
-      id: item.id, name: item.client?.name || item.title || "Jobber Job",
-      service: "Jobber Job", address: "", revenue,
+      id: item.id, name, service: "Jobber Job", address: "", revenue,
       estimatedHours: estHours, distanceMiles: 0,
       preferredDay: "", preferredTime: "", lineItems: [],
       scheduledDay: dayShort, scheduledHour: startHour, fromJobber: true,
     };
-  }).filter(j => j.scheduledDay && j.scheduledHour !== null);
+  }).filter(j => j && j.scheduledDay && j.scheduledHour !== null);
 }
 
 app.listen(PORT, () => console.log(`JobSlot AI Proxy v10 on port ${PORT}`));
