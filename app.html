@@ -406,10 +406,10 @@ Respond ONLY in valid JSON:
 {"day":"Monday","startHour":9,"reason":"2-3 sentence explanation","profitScore":85,"driveScore":72,"preferenceScore":60,"warnings":[]}`;
 
   try{
-    const res=await fetch(ANTHROPIC_API,{
+    const res=await fetch(`${PROXY_URL}/ai/schedule`,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})
+      body:JSON.stringify({prompt})
     });
     const data=await res.json();
     const text=data.content.map(c=>c.text||"").join("");
