@@ -412,7 +412,8 @@ Respond ONLY in valid JSON:
       body:JSON.stringify({prompt})
     });
     const data=await res.json();
-    const text=data.content.map(c=>c.text||"").join("");
+    if(data.error) throw new Error(data.error);
+    const text=(data.content||[]).map(c=>c.text||"").join("");
     const rec=JSON.parse(text.replace(/```json|```/g,"").trim());
     const dayShort=rec.day.toUpperCase().slice(0,3);
     addToSchedule(dayShort, rec.startHour, job.id);
