@@ -418,7 +418,8 @@ Respond ONLY in valid JSON:
     addToSchedule(dayShort, rec.startHour, job.id);
     showRecommendation(rec,job);
   }catch(e){
-    showRecommendation({error:"Could not analyze — please try again."},job);
+    console.error("AI error:", e.message, e.stack);
+    showRecommendation({error:`Could not analyze: ${e.message}`},job);
   }
   document.getElementById("ai-banner").style.display="none";
   renderGrid(); renderDaySummary();
