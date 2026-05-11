@@ -411,6 +411,10 @@ Respond ONLY in valid JSON:
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({prompt})
     });
+    if(!res.ok){
+      const errText=await res.text();
+      throw new Error(`Server ${res.status}: ${errText.slice(0,200)}`);
+    }
     const data=await res.json();
     if(data.error) throw new Error(data.error);
     const text=(data.content||[]).map(c=>c.text||"").join("");
@@ -419,8 +423,9 @@ Respond ONLY in valid JSON:
     addToSchedule(dayShort, rec.startHour, job.id);
     showRecommendation(rec,job);
   }catch(e){
-    console.error("AI error:", e.message, e.stack);
-    showRecommendation({error:`Could not analyze: ${e.message}`},job);
+    const msg = e?.message || JSON.stringify(e) || "Unknown error";
+    console.error("AI error:", msg);
+    showRecommendation({error:`AI error: ${msg}`},job);
   }
   document.getElementById("ai-banner").style.display="none";
   renderGrid(); renderDaySummary();
