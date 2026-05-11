@@ -101,4 +101,112 @@ app.get("/connect", (req, res) => {
   .btn{display:inline-block;padding:12px 28px;background:#0284c7;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px}
   .connected{background:#064e3b;border:1px solid #065f46;border-radius:10px;padding:14px;color:#4ade80;font-size:13px;margin-bottom:16px}
   .reconnect{font-size:12px;color:#475569;margin-top:12px}.reconnect a{color:#38bdf8}</style></head>
-  <body><div class="box"><h1>⚡ JobSlo
+  <body><div class="box"><h1>⚡ JobSlot AI</h1>
+  <p>Connect your Jobber account once and your schedule syncs automatically forever.</p>
+  ${connected
+    ? `<div class="connected">✅ Jobber is connected!<br><small style="opacity:.7">Tokens refresh automatically.</small></div>
+       <a href="/app" class="btn">Open Scheduler →</a>
+       <div class="reconnect"><a href="/auth">Reconnect Jobber</a></div>`
+    : `<a href="/auth" class="btn">Connect to Jobber →</a>`}
+  </div></body></html>`);
+});
+
+app.get("/auth", (req, res) => {
+  if (!JOBBER_CLIENT_ID) return res.status(500).send("JOBBER_CLIENT_ID not configured.");
+  const redirectUri = "https://jobslot-proxy.onrender.com/auth/callback";
+  res.redirect(`${JOBBER_AUTH_URL}?client_id=${JOBBER_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code`);
+});
+
+app.get("/auth/callback", async (req, res) => {
+  const { code, error } = req.query;
+  if (error || !code) return res.send(`<h2 style="color:red;font-family:sans-serif">Failed: ${error||"No code"}</h2>`);
+  try {
+    const redirectUri = "https://jobslot-proxy.onrender.com/auth/callback";
+    const tokenRes = await fetch(JOBBER_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ grant_type: "authorization_code", client_id: JOBBER_CLIENT_ID, client_secret: JOBBER_CLIENT_SECRET, code, redirect_uri: redirectUri }),
+    });
+    if (!tokenRes.ok) { const txt = await tokenRes.text(); throw new Error(`Token exchange failed (${tokenRes.status}): ${txt.slice(0,300)}`); }
+    const data = await tokenRes.json();
+    tokenStore.accessToken  = data.access_token;
+    tokenStore.refreshToken = data.refresh_token;
+    tokenStore.expiresAt    = Date.now() + (data.expires_in || 3300) * 1000;
+    await saveTokensToRender(tokenStore);
+    console.log("OAuth complete. Tokens saved.");
+    res.redirect("/connect");
+  } catch(err) { res.status(500).send(`<h2 style="color:red;font-family:sans-serif">Error: ${err.message}</h2>`); }
+});
+
+app.get("/app", (req, res) => { res.sendFile(path.join(__dirname, "app.html")); });
+
+app.get("/jobber/schedule", async (req, res) => {
+  try {
+    const token = await getValidToken();
+    const targetDate = req.query.week ? new Date(req.query.week) : new Date();
+    const { gte, lte } = getWeekRange(targetDate);
+    console.log(`Syncing Jobber: ${gte} → ${lte}`);
+    const query = `{ visits(filter: { startAt: { after: "${gte}", before: "${lte}" } }) { nodes { id title startAt duration client { name } job { total } } } }`;
+    const jobberRes = await fetch(JOBBER_API_URL, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "X-JOBBER-GRAPHQL-VERSION": JOBBER_API_VERSION },
+      body: JSON.stringify({ query }),
+    });
+    if (!jobberRes.ok) { const t = await jobberRes.text(); throw new Error(`Jobber API ${jobberRes.status}: ${t.slice(0,200)}`); }
+    const raw = await jobberRes.json();
+    if (raw.errors) {
+      const msg = raw.errors[0]?.message || "Unknown error";
+      if (msg.toLowerCase().includes("throttl")) return res.status(429).json({ error: "Rate limit — wait 2 minutes." });
+      throw new Error(`Jobber GraphQL: ${msg}`);
+    }
+    const jobs = normalizeJobberResponse(raw?.data?.visits?.nodes || []);
+    console.log(`Returning ${jobs.length} jobs`);
+    res.json({ success: true, weekStart: gte, weekEnd: lte, count: jobs.length, jobs });
+  } catch(err) {
+    console.error("Sync error:", err.message);
+    if (err.message === "NO_REFRESH_TOKEN") return res.status(401).json({ error: "NOT_CONNECTED", message: "Visit /connect to authorize." });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/ai/schedule", async (req, res) => {
+  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!ANTHROPIC_KEY) return res.status(500).json({ error: "ANTHROPIC_API_KEY not configured." });
+  try {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: "Missing prompt" });
+    const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+    });
+    const data = await aiRes.json();
+    res.json(data);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+function normalizeJobberResponse(nodes) {
+  const DAY_MAP = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+  function getEasternOffset(date) {
+    const year = date.getUTCFullYear();
+    const mar = new Date(Date.UTC(year, 2, 1));
+    const dstStart = new Date(Date.UTC(year, 2, 8 + (7 - mar.getUTCDay()) % 7, 7));
+    const nov = new Date(Date.UTC(year, 10, 1));
+    const dstEnd = new Date(Date.UTC(year, 10, 1 + (7 - nov.getUTCDay()) % 7, 6));
+    return (date >= dstStart && date < dstEnd) ? -4 : -5;
+  }
+  return nodes.map(item => {
+    if (!item.startAt) return null;
+    const utcStart  = new Date(item.startAt);
+    const offset    = getEasternOffset(utcStart);
+    const localDate = new Date(utcStart.getTime() + offset * 3600000);
+    const dayShort  = DAY_MAP[localDate.getUTCDay()];
+    const startHour = localDate.getUTCHours();
+    const estHours  = item.duration ? Math.round((item.duration / 60) * 2) / 2 : 2;
+    const revenue   = parseFloat(item.job?.total || 0);
+    const name      = item.client?.name || item.title?.split(" - ")[0] || "Jobber Job";
+    return { id: item.id, name, service: "Jobber Job", address: "", revenue, estimatedHours: estHours, distanceMiles: 0, preferredDay: "", preferredTime: "", lineItems: [], scheduledDay: dayShort, scheduledHour: startHour, fromJobber: true };
+  }).filter(j => j && j.scheduledDay && j.scheduledHour !== null);
+}
+
+app.listen(PORT, () => console.log(`JobSlot AI Proxy v11 on port ${PORT}`));
