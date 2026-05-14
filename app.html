@@ -344,7 +344,13 @@ let calculatedHours = null; // holds AI-suggested hours from quote
 let milesLookupTimer = null;
 
 // ── MILEAGE AUTO-CALCULATE ────────────────────────────────────────────────────
-async function autoCalculateMiles(){
+let _milesDebounce = null;
+function autoCalculateMiles(){
+  clearTimeout(_milesDebounce);
+  _milesDebounce = setTimeout(_doCalculateMiles, 600); // wait 600ms after last blur
+}
+
+async function _doCalculateMiles(){
   const jobAddr = document.getElementById("job-address").value.trim();
   const overrideBase = document.getElementById("job-base-override")?.value.trim();
   const baseAddr = overrideBase || PARAMS.baseAddress;
@@ -354,8 +360,14 @@ async function autoCalculateMiles(){
     return;
   }
 
+  // Don't re-fetch if address hasn't changed
+  const cacheKey = `${baseAddr}||${jobAddr}`;
+  if(autoCalculateMiles._lastKey === cacheKey) return;
+  autoCalculateMiles._lastKey = cacheKey;
+
   const hint = document.getElementById("miles-calc-hint");
   hint.style.display = "block";
+  hint.style.color = "";
   hint.textContent = "📍 Calculating drive distance...";
 
   try {
@@ -366,7 +378,7 @@ async function autoCalculateMiles(){
     if(!res.ok || data.error) throw new Error(data.error || "Distance lookup failed");
 
     const miles = data.miles;
-    hint.textContent = `→ ${miles} miles driving · Click to apply`;
+    hint.textContent = `→ ${miles} miles driving (${data.duration}) · Click to apply`;
     hint.onclick = () => {
       document.getElementById("job-miles").value = miles;
       updateProfitPreview();
@@ -379,6 +391,7 @@ async function autoCalculateMiles(){
     setTimeout(() => { hint.style.display="none"; hint.style.color=""; }, 4000);
   }
 }
+autoCalculateMiles._lastKey = "";
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 function doLogin(){
@@ -611,6 +624,7 @@ async function addJob(){
   document.getElementById("quote-status").textContent="";
   document.getElementById("hours-calc-hint").style.display="none";
   document.getElementById("miles-calc-hint").style.display="none";
+  autoCalculateMiles._lastKey = ""; // reset cache so next job recalculates
   calculatedHours=null;
   lineItems=[{desc:"",cost:0}]; renderLineItems();
 
