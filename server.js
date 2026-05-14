@@ -180,20 +180,19 @@ app.get("/distance", async (req, res) => {
 app.get("/quote/:id", async (req, res) => {
   try {
     const token = await getValidToken();
-    const quoteId = req.params.id;
-    console.log(`Looking up quote: ${quoteId}`);
+    const quoteNumber = req.params.id;
+    console.log(`Looking up quote: ${quoteNumber}`);
 
-    // Jobber quote IDs in GraphQL need to be the global ID format
-    // Try fetching by quote number first (searching quotes)
+    // Jobber uses quoteNumber as a String filter, not Int
     const searchQuery = `{
-      quotes(filter: { quoteNumber: ${parseInt(quoteId) || 0} }) {
+      quotes(filter: { quoteNumber: "${quoteNumber}" }) {
         nodes {
           id
           quoteNumber
           title
           message
           amounts { total depositAmount }
-          client { name companyName defaultEmails { description } }
+          client { name companyName }
           property {
             address {
               street
@@ -236,12 +235,13 @@ app.get("/quote/:id", async (req, res) => {
 
     if (raw.errors) {
       const msg = raw.errors[0]?.message || "Unknown GraphQL error";
+      console.error("Full GraphQL errors:", JSON.stringify(raw.errors));
       throw new Error(`Jobber GraphQL: ${msg}`);
     }
 
     const nodes = raw?.data?.quotes?.nodes || [];
     if (nodes.length === 0) {
-      return res.status(404).json({ error: `Quote #${quoteId} not found in Jobber.` });
+      return res.status(404).json({ error: `Quote #${quoteNumber} not found in Jobber.` });
     }
 
     const q = nodes[0];
