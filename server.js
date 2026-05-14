@@ -183,9 +183,10 @@ app.get("/quote/:id", async (req, res) => {
     const quoteNumber = req.params.id;
     console.log(`Looking up quote: ${quoteNumber}`);
 
-    // Jobber uses quoteNumber as a String filter, not Int
+    // Jobber requires quoteNumber as IntRangeInput: { min: N, max: N }
+    const qNum = parseInt(quoteNumber);
     const searchQuery = `{
-      quotes(filter: { quoteNumber: "${quoteNumber}" }) {
+      quotes(filter: { quoteNumber: { min: ${qNum}, max: ${qNum} } }) {
         nodes {
           id
           quoteNumber
