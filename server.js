@@ -236,32 +236,18 @@ app.get("/quote/:id", async (req, res) => {
 
     // Jobber requires quoteNumber as IntRangeInput: { min: N, max: N }
     const qNum = parseInt(quoteNumber);
+    // Keep query minimal — Jobber charges per field, lineItems are expensive
     const searchQuery = `{
       quotes(filter: { quoteNumber: { min: ${qNum}, max: ${qNum} } }) {
         nodes {
           id
           quoteNumber
           title
-          message
-          amounts { total depositAmount }
+          amounts { total }
           client { name companyName }
-          property {
-            address {
-              street
-              city
-              province
-              postalCode
-              country
-            }
-          }
-          lineItems {
-            nodes {
-              name
-              description
-              quantity
-              unitPrice
-              totalPrice
-            }
+          property { address { street city province postalCode } }
+          lineItems(first: 20) {
+            nodes { name unitPrice quantity totalPrice }
           }
         }
       }
@@ -303,7 +289,7 @@ app.get("/quote/:id", async (req, res) => {
       : "";
 
     const lineItems = (q.lineItems?.nodes || []).map(li => ({
-      desc: li.name || li.description || "",
+      desc: li.name || "",
       cost: parseFloat(li.totalPrice || 0),
       unitPrice: parseFloat(li.unitPrice || 0),
       quantity: parseFloat(li.quantity || 1),
