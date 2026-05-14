@@ -8,12 +8,13 @@
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'DM Sans','Segoe UI',sans-serif;background:#0c0f1a;color:#e2e8f0;min-height:100vh}
-  input,select,button{font-family:inherit}
-  input:focus,select:focus{outline:none;border-color:#38bdf8!important}
+  input,select,button,textarea{font-family:inherit}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:#38bdf8!important}
   ::-webkit-scrollbar{width:5px;height:5px}
   ::-webkit-scrollbar-track{background:#1a1f2e}
   ::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
 
+  /* LOGIN */
   #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0c0f1a}
   .login-box{background:#0f172a;border:1px solid #1e293b;border-radius:20px;padding:40px;width:360px;text-align:center}
   .login-logo{width:52px;height:52px;background:linear-gradient(135deg,#0ea5e9,#6366f1);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px}
@@ -24,96 +25,138 @@
   .login-btn:hover{background:#0369a1}
   .login-error{color:#f87171;font-size:12px;margin-top:8px}
 
+  /* HEADER */
   #app-screen{display:none;flex-direction:column;min-height:100vh}
-  .header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid #1e293b;padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .header-logo{width:32px;height:32px;background:linear-gradient(135deg,#0ea5e9,#6366f1);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-  .header-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;margin-left:10px}
-  .header-sub{font-size:10px;color:#64748b;letter-spacing:.5px;margin-left:10px}
-  .sync-btn{padding:6px 14px;border-radius:8px;background:#064e3b;color:#4ade80;border:1px solid #065f46;font-size:12px;font-weight:700;cursor:pointer;margin-left:12px}
+  .header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid #1e293b;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .header-logo{width:30px;height:30px;background:linear-gradient(135deg,#0ea5e9,#6366f1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .header-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;margin-left:8px}
+  .header-sub{font-size:10px;color:#64748b;letter-spacing:.5px;margin-left:8px}
+  .sync-btn{padding:5px 12px;border-radius:7px;background:#064e3b;color:#4ade80;border:1px solid #065f46;font-size:11px;font-weight:700;cursor:pointer;margin-left:10px}
   .sync-btn:hover{background:#065f46}
   .sync-btn:disabled{opacity:.5;cursor:not-allowed}
-  .sync-status{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-left:8px}
+  .sync-status{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:600;margin-left:6px}
   .sync-ok{background:#064e3b;color:#4ade80}
   .sync-err{background:#450a0a;color:#f87171}
-  .tabs{display:flex;gap:6px;margin-left:auto}
-  .tab-btn{padding:6px 12px;border-radius:8px;border:1px solid #1e293b;background:transparent;color:#94a3b8;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+  .tabs{display:flex;gap:5px;margin-left:auto}
+  .tab-btn{padding:5px 10px;border-radius:7px;border:1px solid #1e293b;background:transparent;color:#94a3b8;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s}
   .tab-btn:hover{background:#1e2535}
   .tab-btn.active{background:#1e3a5f;color:#38bdf8;border-color:#38bdf8}
-  .logout-btn{padding:5px 10px;border-radius:7px;background:transparent;color:#475569;border:1px solid #1e293b;font-size:11px;cursor:pointer;margin-left:8px}
+  .logout-btn{padding:4px 9px;border-radius:6px;background:transparent;color:#475569;border:1px solid #1e293b;font-size:10px;cursor:pointer;margin-left:6px}
 
+  /* LAYOUT */
   .main{display:grid;flex:1;overflow:hidden}
-  .main.split{grid-template-columns:400px 1fr}
+  .main.split{grid-template-columns:390px 1fr}
   .main.full{grid-template-columns:1fr}
-  .left-panel{border-right:1px solid #1a2035;overflow-y:auto;padding:18px;background:#0d1220}
-  .right-panel{overflow-y:auto;padding:18px;background:#0c0f1a}
+  .left-panel{border-right:1px solid #1a2035;overflow-y:auto;padding:16px;background:#0d1220}
+  .right-panel{overflow-y:auto;padding:16px;background:#0c0f1a}
 
-  .section-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:#38bdf8;margin-bottom:14px;letter-spacing:.5px}
-  .label{font-size:11px;color:#64748b;font-weight:600;letter-spacing:.5px;display:block;margin-bottom:4px}
-  .input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #1e293b;background:#0f172a;color:#e2e8f0;font-size:13px}
-  .field{margin-bottom:11px}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .revenue-box{background:#0f172a;border-radius:10px;padding:10px 14px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;border:1px solid #1e293b}
-  .profit-grid{background:#0f172a;border-radius:10px;padding:10px 14px;margin-bottom:14px;border:1px solid #1e293b;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center}
-  .add-btn{width:100%;padding:11px;border-radius:10px;background:#0284c7;color:#fff;border:none;font-weight:700;font-size:14px;cursor:pointer}
+  /* FORMS */
+  .section-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:#38bdf8;margin-bottom:12px;letter-spacing:.5px}
+  .label{font-size:10px;color:#64748b;font-weight:600;letter-spacing:.5px;display:block;margin-bottom:3px}
+  .input{width:100%;padding:7px 9px;border-radius:7px;border:1px solid #1e293b;background:#0f172a;color:#e2e8f0;font-size:12px}
+  .field{margin-bottom:10px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .revenue-box{background:#0f172a;border-radius:9px;padding:8px 12px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;border:1px solid #1e293b}
+  .profit-grid{background:#0f172a;border-radius:9px;padding:8px 12px;margin-bottom:10px;border:1px solid #1e293b;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center}
+  .add-btn{width:100%;padding:10px;border-radius:9px;background:#0284c7;color:#fff;border:none;font-weight:700;font-size:13px;cursor:pointer}
   .add-btn:hover:not(:disabled){background:#0369a1}
-  .add-btn:disabled{background:#1e3a5f;cursor:not-allowed}
-  .li-row{display:grid;grid-template-columns:1fr 76px 22px;gap:6px;margin-bottom:6px}
-  .li-add{font-size:11px;color:#38bdf8;background:none;border:none;cursor:pointer;font-weight:600}
-  .li-remove{background:none;border:none;color:#475569;cursor:pointer;font-size:16px}
-  .range-row{margin-bottom:16px}
-  .range-header{display:flex;justify-content:space-between;margin-bottom:4px}
+  .add-btn:disabled{background:#1e3a5f;cursor:not-allowed;opacity:.7}
+  .li-row{display:grid;grid-template-columns:1fr 72px 20px;gap:5px;margin-bottom:5px}
+  .li-add{font-size:10px;color:#38bdf8;background:none;border:none;cursor:pointer;font-weight:600}
+  .li-remove{background:none;border:none;color:#475569;cursor:pointer;font-size:15px;line-height:1}
+  .range-row{margin-bottom:14px}
+  .range-header{display:flex;justify-content:space-between;margin-bottom:3px}
   input[type=range]{width:100%;accent-color:#0ea5e9}
+  .divider{border:none;border-top:1px solid #1a2035;margin:12px 0}
+  .hint{font-size:10px;color:#38bdf8;margin-top:3px;cursor:pointer}
+  .hint:hover{text-decoration:underline}
 
-  /* Quote lookup */
-  .quote-lookup-box{background:#0f172a;border:1px solid #1e3a5f;border-radius:10px;padding:12px;margin-bottom:14px}
-  .quote-lookup-row{display:flex;gap:8px;align-items:flex-end}
+  /* QUOTE LOOKUP */
+  .quote-lookup-box{background:#0f172a;border:1px solid #1e3a5f;border-radius:9px;padding:10px;margin-bottom:12px}
+  .quote-lookup-row{display:flex;gap:6px;align-items:flex-end;margin-bottom:6px}
   .quote-lookup-row .input{flex:1;margin:0}
-  .lookup-btn{padding:8px 14px;border-radius:8px;background:#1e3a5f;color:#38bdf8;border:1px solid #38bdf8;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+  .lookup-btn{padding:7px 12px;border-radius:7px;background:#1e3a5f;color:#38bdf8;border:1px solid #38bdf8;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
   .lookup-btn:hover{background:#1e4976}
   .lookup-btn:disabled{opacity:.5;cursor:not-allowed}
-  .quote-status{font-size:11px;margin-top:6px;min-height:16px}
+  .quote-status{font-size:10px;min-height:14px}
   .quote-ok{color:#4ade80}
   .quote-err{color:#f87171}
-  .quote-loaded-badge{display:inline-flex;align-items:center;gap:5px;background:#064e3b;border:1px solid #065f46;border-radius:6px;padding:3px 8px;font-size:11px;color:#4ade80;font-weight:600;margin-top:6px}
 
-  /* Hours calculated row */
-  .hours-calc-hint{font-size:10px;color:#38bdf8;margin-top:3px;cursor:pointer}
-  .hours-calc-hint:hover{text-decoration:underline}
+  /* QUEUE */
+  .queue-item{background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:8px 10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .queue-item.pending{border-color:#1e3a5f}
+  .queue-item.error{border-color:#450a0a}
+  .queue-remove{background:none;border:none;color:#475569;cursor:pointer;font-size:14px;flex-shrink:0;padding:0}
 
-  /* Job type rates table */
-  .rates-table{width:100%;border-collapse:collapse;margin-top:8px}
-  .rates-table th{font-size:10px;color:#64748b;font-weight:600;letter-spacing:.5px;text-align:left;padding:5px 8px;border-bottom:1px solid #1e293b}
-  .rates-table td{padding:5px 6px;border-bottom:1px solid #111827;font-size:12px}
+  /* PARAMS — rates table */
+  .rates-table{width:100%;border-collapse:collapse;margin-top:6px}
+  .rates-table th{font-size:10px;color:#64748b;font-weight:600;letter-spacing:.5px;text-align:left;padding:4px 6px;border-bottom:1px solid #1e293b}
+  .rates-table td{padding:4px 5px;border-bottom:1px solid #111827;font-size:11px}
   .rates-table tr:last-child td{border-bottom:none}
-  .rate-input{width:80px;padding:5px 8px;border-radius:6px;border:1px solid #1e293b;background:#0c0f1a;color:#e2e8f0;font-size:12px;text-align:right}
+  .rate-input{width:72px;padding:4px 6px;border-radius:5px;border:1px solid #1e293b;background:#0c0f1a;color:#e2e8f0;font-size:11px;text-align:right}
   .rate-input:focus{outline:none;border-color:#38bdf8}
 
-  /* Schedule */
-  .day-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
-  .day-card{background:#0f172a;border-radius:10px;padding:9px 10px;border:1px solid #1a2035;text-align:center}
-  .week-grid{background:#0f172a;border-radius:14px;border:1px solid #1a2035;overflow:hidden}
-  .grid-header{display:grid;grid-template-columns:58px repeat(5,1fr);border-bottom:1px solid #1a2035}
-  .grid-header-cell{padding:9px 6px;text-align:center;font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;border-right:1px solid #1a2035}
-  .grid-row{display:grid;grid-template-columns:58px repeat(5,1fr);border-bottom:1px solid #111827}
-  .time-cell{padding:5px 7px;border-right:1px solid #1a2035;display:flex;align-items:flex-start;justify-content:flex-end;min-height:40px}
-  .slot-cell{border-right:1px solid #111827;padding:3px;min-height:40px;transition:background .15s}
-  .slot-cell:hover{background:rgba(56,189,248,.05)}
-  .slot-cell .chips{display:flex;flex-direction:column;gap:2px}
-  .job-chip{border-radius:6px;padding:3px 6px;cursor:pointer;transition:all .15s;position:relative;margin-bottom:1px}
+  /* PARAMS — tech list */
+  .tech-row{display:grid;grid-template-columns:1fr 60px 80px 22px;gap:5px;align-items:center;margin-bottom:5px}
+  .tech-add-btn{font-size:10px;color:#38bdf8;background:none;border:none;cursor:pointer;font-weight:600;margin-top:4px}
+  .avail-toggle{padding:3px 7px;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;border:none}
+  .avail-yes{background:#064e3b;color:#4ade80}
+  .avail-no{background:#450a0a;color:#f87171}
+
+  /* AI SUGGESTIONS */
+  .ai-banner{background:#1e3a5f;border-radius:10px;padding:10px 14px;margin-bottom:12px;border:1px solid #0ea5e9;display:flex;align-items:center;gap:8px}
+  .suggestions-container{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+  .suggestion-card{background:#0f1f3d;border:2px solid #1e4976;border-radius:12px;padding:12px;cursor:pointer;transition:all .2s;position:relative}
+  .suggestion-card:hover{border-color:#38bdf8;background:#0f2744}
+  .suggestion-card.selected{border-color:#38bdf8;background:#0f2744;box-shadow:0 0 0 2px rgba(56,189,248,.2)}
+  .suggestion-card .rank{position:absolute;top:8px;right:8px;font-size:10px;font-weight:700;color:#64748b}
+  .suggestion-card.selected .rank{color:#38bdf8}
+  .score-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:8px}
+  .score-bar-bg{height:3px;background:#1e293b;border-radius:2px;overflow:hidden;margin-top:2px}
+  .score-bar{height:100%;border-radius:2px;transition:width .8s ease}
+  .confirm-btn{width:100%;padding:10px;border-radius:9px;background:#059669;color:#fff;border:none;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:14px}
+  .confirm-btn:hover{background:#047857}
+  .confirm-btn:disabled{background:#1e3a5f;cursor:not-allowed;opacity:.6}
+
+  /* MONTH VIEW */
+  .month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .month-nav-btn{padding:5px 12px;border-radius:7px;background:#0f172a;border:1px solid #1e293b;color:#94a3b8;font-size:12px;cursor:pointer}
+  .month-nav-btn:hover{background:#1e2535;color:#e2e8f0}
+  .month-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;color:#e2e8f0}
+  .month-grid{background:#0f172a;border-radius:12px;border:1px solid #1a2035;overflow:hidden;margin-bottom:12px}
+  .month-header{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid #1a2035}
+  .month-header-cell{padding:7px 4px;text-align:center;font-size:10px;font-weight:700;color:#64748b;letter-spacing:.8px}
+  .month-week-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid #111827;cursor:pointer;transition:background .15s;min-height:54px}
+  .month-week-row:last-child{border-bottom:none}
+  .month-week-row:hover{background:rgba(56,189,248,.04)}
+  .month-week-row.expanded{background:rgba(56,189,248,.06);border-color:#1e3a5f}
+  .month-day-cell{padding:4px;border-right:1px solid #111827;min-height:54px}
+  .month-day-cell:last-child{border-right:none}
+  .month-day-num{font-size:10px;color:#475569;font-weight:600;margin-bottom:3px}
+  .month-day-num.today{color:#38bdf8;font-weight:700}
+  .month-day-num.other-month{color:#1e293b}
+  .job-dot{width:8px;height:8px;border-radius:2px;display:inline-block;margin:1px}
+  .month-day-profit{font-size:9px;color:#4ade80;font-weight:600;margin-top:2px}
+
+  /* WEEK EXPAND */
+  .week-expand{background:#0c0f1a;border:1px solid #1e3a5f;border-radius:10px;margin-bottom:12px;overflow:hidden}
+  .week-expand-header{padding:8px 12px;background:#0f172a;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1a2035}
+  .week-grid-inner{overflow-x:auto}
+  .grid-table{min-width:600px;width:100%;border-collapse:collapse}
+  .grid-th{padding:7px 5px;text-align:center;font-size:10px;font-weight:700;color:#64748b;letter-spacing:.8px;border-right:1px solid #1a2035;background:#0f172a}
+  .grid-time-cell{padding:4px 6px;border-right:1px solid #1a2035;border-bottom:1px solid #111827;font-size:9px;color:#334155;font-weight:600;vertical-align:top;white-space:nowrap;background:#0d1220;width:48px}
+  .grid-slot{border-right:1px solid #111827;border-bottom:1px solid #111827;padding:2px;vertical-align:top;min-width:80px}
+  .grid-slot:hover{background:rgba(56,189,248,.04)}
+  .job-chip{border-radius:5px;padding:2px 5px;margin-bottom:1px;cursor:pointer;transition:filter .15s}
   .job-chip:hover{filter:brightness(1.1)}
 
-  .ai-banner{background:#1e3a5f;border-radius:12px;padding:11px 16px;margin-bottom:14px;border:1px solid #0ea5e9;display:flex;align-items:center;gap:10px}
-  .rec-banner{background:linear-gradient(135deg,#0f2744,#0f1f3d);border-radius:12px;padding:13px 16px;margin-bottom:14px;border:1px solid #1e4976}
-  .score-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
-  .score-bar-bg{height:4px;background:#1e293b;border-radius:2px;overflow:hidden;margin-top:3px}
-  .score-bar{height:100%;border-radius:2px;transition:width .8s ease}
+  .legend{margin-top:8px;font-size:10px;color:#334155}
+  .empty-state{text-align:center;padding-top:50px;color:#334155}
   .pulse{animation:pulse 1.5s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
   .slide-in{animation:slideIn .3s ease}
-  @keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-  .empty-state{text-align:center;padding-top:50px;color:#334155}
-  .legend{margin-top:10px;font-size:10px;color:#334155}
-  .divider{border:none;border-top:1px solid #1a2035;margin:14px 0}
+  @keyframes slideIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 <body>
@@ -138,7 +181,7 @@
     </div>
     <button class="sync-btn" id="sync-btn" onclick="syncJobber()">⟳ Sync Jobber</button>
     <span id="sync-status-pill" style="display:none" class="sync-status"></span>
-    <div id="last-sync-label" style="font-size:10px;color:#334155;margin-left:8px"></div>
+    <div id="last-sync-label" style="font-size:10px;color:#334155;margin-left:6px"></div>
     <div class="tabs">
       <button class="tab-btn active" onclick="setTab('add')">＋ Add Job</button>
       <button class="tab-btn" onclick="setTab('params')">⚙ Params</button>
@@ -147,158 +190,215 @@
     <button class="logout-btn" onclick="doLogout()">Sign out</button>
   </div>
 
-  <div class="main split" id="main-area" style="height:calc(100vh - 65px)">
+  <div class="main split" id="main-area" style="height:calc(100vh - 60px)">
     <div class="left-panel" id="left-panel">
 
       <!-- ── ADD JOB TAB ── -->
       <div id="tab-add">
-        <div class="section-title">NEW JOB</div>
+        <div class="section-title">ADD JOB(S)</div>
 
         <!-- Quote Lookup -->
         <div class="quote-lookup-box">
-          <label class="label" style="margin-bottom:6px">IMPORT FROM JOBBER QUOTE</label>
+          <label class="label" style="margin-bottom:5px;color:#7dd3fc">IMPORT FROM JOBBER QUOTES</label>
           <div class="quote-lookup-row">
-            <input class="input" id="quote-number-input" type="text" placeholder="Quote # (e.g. 1042)" onkeydown="if(event.key==='Enter')lookupQuote()">
-            <button class="lookup-btn" id="lookup-btn" onclick="lookupQuote()">🔍 Lookup</button>
+            <input class="input" id="quote-number-input" type="text" placeholder="5890, 5891, 5892 or single #" onkeydown="if(event.key==='Enter')lookupQuotes()">
+            <button class="lookup-btn" id="lookup-btn" onclick="lookupQuotes()">🔍 Lookup</button>
           </div>
           <div class="quote-status" id="quote-status"></div>
         </div>
 
+        <!-- Queue -->
+        <div id="queue-section" style="display:none;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <label class="label" style="margin:0;color:#7dd3fc">JOB QUEUE (<span id="queue-count">0</span>)</label>
+            <button onclick="clearQueue()" style="font-size:10px;color:#475569;background:none;border:none;cursor:pointer">Clear all</button>
+          </div>
+          <div id="queue-list"></div>
+          <button class="add-btn" id="schedule-queue-btn" onclick="scheduleQueue()" style="background:#059669;margin-top:6px">⚡ Schedule All Queued Jobs</button>
+        </div>
+
         <hr class="divider">
 
-        <div class="field"><label class="label">JOB NAME / CLIENT</label><input class="input" id="job-name" placeholder="e.g. Smith Residence"></div>
-        <div class="field">
-          <label class="label">SERVICE ADDRESS</label>
-          <input class="input" id="job-address" placeholder="123 Main St, City" onblur="autoCalculateMiles()">
-          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-            <input type="text" id="job-base-override" class="input" placeholder="Override base address (optional)" style="font-size:11px;padding:5px 8px;color:#64748b" onblur="autoCalculateMiles()">
-          </div>
-          <div style="font-size:10px;color:#475569;margin-top:2px">Leave override blank to use base address from Params</div>
-        </div>
-        <div class="field">
-          <label class="label">SERVICE TYPE</label>
-          <select class="input" id="job-service" onchange="onServiceChange()">
-            <option>Pressure Washing</option>
-            <option>Soft Washing</option>
-            <option>Window Cleaning</option>
-            <option>Restoration</option>
-            <option>Low Moisture Carpet Cleaning</option>
-            <option>Electrical</option>
-          </select>
-        </div>
-        <div class="grid2">
+        <!-- Single job form (filled from quote or manual) -->
+        <div id="single-job-form">
+          <div class="field"><label class="label">JOB NAME / CLIENT</label><input class="input" id="job-name" placeholder="e.g. Smith Residence"></div>
           <div class="field">
-            <label class="label">EST. HOURS</label>
-            <input class="input" type="number" id="job-hours" value="2" min=".5" max="12" step=".5" oninput="updateProfitPreview()">
-            <div class="hours-calc-hint" id="hours-calc-hint" style="display:none" onclick="applyCalculatedHours()"></div>
+            <label class="label">SERVICE ADDRESS</label>
+            <input class="input" id="job-address" placeholder="123 Main St, City" onblur="autoCalculateMiles()">
+            <input type="text" id="job-base-override" class="input" placeholder="Override base address (optional)" style="font-size:10px;padding:4px 7px;color:#64748b;margin-top:3px" onblur="autoCalculateMiles()">
+            <div style="font-size:9px;color:#475569;margin-top:1px">Leave blank to use base address from Params</div>
           </div>
           <div class="field">
-            <label class="label">MILES FROM BASE</label>
-            <input class="input" type="number" id="job-miles" value="0" min="0" max="300" step="0.1" oninput="updateProfitPreview()">
-            <div class="hours-calc-hint" id="miles-calc-hint" style="display:none"></div>
-          </div>
-        </div>
-        <div class="grid2">
-          <div class="field">
-            <label class="label">PREF. DAY</label>
-            <select class="input" id="job-pref-day">
-              <option value="">Any</option><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option>
+            <label class="label">SERVICE TYPE</label>
+            <select class="input" id="job-service" onchange="onServiceChange()">
+              <option>Pressure Washing</option>
+              <option>Soft Washing</option>
+              <option>Interior Window Cleaning</option>
+              <option>Exterior Window Cleaning</option>
+              <option>Hood Cleaning</option>
+              <option>Commercial Concrete</option>
+              <option>Restoration</option>
+              <option>Low Moisture Carpet Cleaning</option>
+              <option>Electrical</option>
             </select>
           </div>
-          <div class="field">
-            <label class="label">PREF. TIME</label>
-            <select class="input" id="job-pref-time">
-              <option value="">Any</option><option>Morning (7–11AM)</option><option>Afternoon (12–3PM)</option><option>Late (3–6PM)</option>
-            </select>
+          <div class="grid2">
+            <div class="field">
+              <label class="label">EST. HOURS</label>
+              <input class="input" type="number" id="job-hours" value="2" min=".25" max="12" step=".25" oninput="updateProfitPreview()">
+              <div class="hint" id="hours-calc-hint" style="display:none" onclick="applyCalculatedHours()"></div>
+            </div>
+            <div class="field">
+              <label class="label">MILES FROM BASE</label>
+              <input class="input" type="number" id="job-miles" value="0" min="0" max="300" step="0.1" oninput="updateProfitPreview()">
+              <div class="hint" id="miles-calc-hint" style="display:none"></div>
+            </div>
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <label class="label">PREF. DAY</label>
+              <select class="input" id="job-pref-day">
+                <option value="">Any</option><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="label">PREF. TIME</label>
+              <select class="input" id="job-pref-time">
+                <option value="">Any</option><option>Morning (7–11AM)</option><option>Afternoon (12–3PM)</option><option>Late (3–6PM)</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <label class="label" style="margin:0">LINE ITEMS</label>
+            <button class="li-add" onclick="addLineItem()">+ Add</button>
+          </div>
+          <div id="line-items"></div>
+          <div class="revenue-box">
+            <span style="font-size:11px;color:#64748b">Total Revenue</span>
+            <span id="total-revenue" style="font-weight:700;font-size:15px;color:#4ade80">$0</span>
+          </div>
+          <div class="profit-grid" id="profit-grid" style="display:none">
+            <div><div style="font-size:9px;color:#64748b;margin-bottom:1px">Labor</div><div id="labor-cost" style="font-weight:700;color:#f87171;font-size:13px"></div></div>
+            <div><div style="font-size:9px;color:#64748b;margin-bottom:1px">Drive</div><div id="drive-cost" style="font-weight:700;color:#fbbf24;font-size:13px"></div></div>
+            <div><div style="font-size:9px;color:#64748b;margin-bottom:1px">Profit</div><div id="est-profit" style="font-weight:700;color:#4ade80;font-size:13px"></div></div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="add-btn" style="flex:1" id="add-to-queue-btn" onclick="addToQueue()">+ Add to Queue</button>
+            <button class="add-btn" id="add-btn" onclick="addJob()" style="flex:2">⚡ Get AI Suggestions</button>
           </div>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <label class="label" style="margin:0">LINE ITEMS</label>
-          <button class="li-add" onclick="addLineItem()">+ Add</button>
-        </div>
-        <div id="line-items"></div>
-        <div class="revenue-box">
-          <span style="font-size:12px;color:#64748b">Total Revenue</span>
-          <span id="total-revenue" style="font-weight:700;font-size:16px;color:#4ade80">$0</span>
-        </div>
-        <div class="profit-grid" id="profit-grid" style="display:none">
-          <div><div style="font-size:10px;color:#64748b;margin-bottom:2px">Labor</div><div id="labor-cost" style="font-weight:700;color:#f87171;font-size:14px"></div></div>
-          <div><div style="font-size:10px;color:#64748b;margin-bottom:2px">Drive</div><div id="drive-cost" style="font-weight:700;color:#fbbf24;font-size:14px"></div></div>
-          <div><div style="font-size:10px;color:#64748b;margin-bottom:2px">Profit</div><div id="est-profit" style="font-weight:700;color:#4ade80;font-size:14px"></div></div>
-        </div>
-        <button class="add-btn" id="add-btn" onclick="addJob()">⚡ Add &amp; Auto-Schedule</button>
       </div>
 
       <!-- ── PARAMS TAB ── -->
       <div id="tab-params" style="display:none">
         <div class="section-title">BUSINESS PARAMETERS</div>
 
-        <!-- Base Address -->
-        <div class="field" style="margin-bottom:18px;padding:12px;background:#0f172a;border:1px solid #1e3a5f;border-radius:10px">
-          <label class="label" style="color:#38bdf8">BASE ADDRESS (YOUR SHOP / HOME)</label>
-          <input class="input" id="p-base-address" placeholder="e.g. 123 Shop Rd, York, PA 17401" style="margin-bottom:4px">
-          <div style="font-size:10px;color:#475569">Used to auto-calculate driving miles for every job. Set once, apply everywhere.</div>
+        <div class="field" style="margin-bottom:14px;padding:10px;background:#0f172a;border:1px solid #1e3a5f;border-radius:9px">
+          <label class="label" style="color:#38bdf8">BASE ADDRESS</label>
+          <input class="input" id="p-base-address" placeholder="e.g. 123 Shop Rd, York, PA 17401" style="margin-bottom:3px">
+          <div style="font-size:9px;color:#475569">Used to auto-calculate driving miles for every job.</div>
         </div>
+
         <div class="range-row">
-          <div class="range-header"><label class="label" style="margin:0">LABOR RATE ($/HR/PERSON)</label><span id="lbl-labor" style="font-size:12px;font-weight:600">$65</span></div>
+          <div class="range-header"><label class="label" style="margin:0">LABOR RATE ($/HR/PERSON)</label><span id="lbl-labor" style="font-size:11px;font-weight:600">$65</span></div>
           <input type="range" min="1" max="200" value="65" id="p-labor" oninput="updateParam('labor',this.value)">
         </div>
         <div class="range-row">
-          <div class="range-header"><label class="label" style="margin:0">CREW SIZE</label><span id="lbl-crew" style="font-size:12px;font-weight:600">2</span></div>
+          <div class="range-header"><label class="label" style="margin:0">CREW SIZE</label><span id="lbl-crew" style="font-size:11px;font-weight:600">2</span></div>
           <input type="range" min="1" max="10" value="2" id="p-crew" oninput="updateParam('crew',this.value)">
         </div>
         <div class="range-row">
-          <div class="range-header"><label class="label" style="margin:0">FUEL COST ($/MILE)</label><span id="lbl-fuel" style="font-size:12px;font-weight:600">$0.21</span></div>
+          <div class="range-header"><label class="label" style="margin:0">TOTAL AVAILABLE CREWS</label><span id="lbl-totalcrews" style="font-size:11px;font-weight:600">5</span></div>
+          <input type="range" min="1" max="20" value="5" id="p-totalcrews" oninput="updateParam('totalcrews',this.value)">
+        </div>
+        <div class="range-row">
+          <div class="range-header"><label class="label" style="margin:0">FUEL COST ($/MILE)</label><span id="lbl-fuel" style="font-size:11px;font-weight:600">$0.21</span></div>
           <input type="range" min="0.05" max="1" step="0.01" value="0.21" id="p-fuel" oninput="updateParam('fuel',this.value)">
         </div>
         <div class="range-row">
-          <div class="range-header"><label class="label" style="margin:0">WORKDAY START</label><span id="lbl-start" style="font-size:12px;font-weight:600">7:00 AM</span></div>
+          <div class="range-header"><label class="label" style="margin:0">WORKDAY START</label><span id="lbl-start" style="font-size:11px;font-weight:600">7:00 AM</span></div>
           <input type="range" min="5" max="12" value="7" id="p-start" oninput="updateParam('start',this.value)">
         </div>
         <div class="range-row">
-          <div class="range-header"><label class="label" style="margin:0">WORKDAY END</label><span id="lbl-end" style="font-size:12px;font-weight:600">6:00 PM</span></div>
+          <div class="range-header"><label class="label" style="margin:0">WORKDAY END</label><span id="lbl-end" style="font-size:11px;font-weight:600">6:00 PM</span></div>
           <input type="range" min="14" max="22" value="18" id="p-end" oninput="updateParam('end',this.value)">
         </div>
 
-        <!-- Job Type Rates -->
-        <div style="margin-top:24px;padding-top:20px;border-top:1px solid #1a2035">
-          <div class="section-title">COST PER MAN HOUR BY JOB TYPE</div>
-          <div style="font-size:11px;color:#475569;margin-bottom:10px;line-height:1.5">
-            Used by AI to calculate estimated crew hours from quote totals. Set the fully-loaded cost (labor + overhead) per man per hour for each service type.
+        <!-- Tech List -->
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #1a2035">
+          <div class="section-title">TECHNICIANS</div>
+          <div style="display:grid;grid-template-columns:1fr 60px 80px 22px;gap:5px;margin-bottom:4px">
+            <span style="font-size:9px;color:#475569;font-weight:600;letter-spacing:.5px">NAME</span>
+            <span style="font-size:9px;color:#475569;font-weight:600;letter-spacing:.5px">DRIVER</span>
+            <span style="font-size:9px;color:#475569;font-weight:600;letter-spacing:.5px">DEFAULT</span>
+            <span></span>
           </div>
+          <div id="tech-list"></div>
+          <button class="tech-add-btn" onclick="addTech()">+ Add Technician</button>
+        </div>
+
+        <!-- Job Type Rates -->
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #1a2035">
+          <div class="section-title">COST PER MAN HOUR BY JOB TYPE</div>
+          <div style="font-size:10px;color:#475569;margin-bottom:8px;line-height:1.5">Used to calculate estimated hours from quote totals.</div>
           <table class="rates-table">
-            <thead>
-              <tr>
-                <th>SERVICE TYPE</th>
-                <th style="text-align:right">$/MAN HR</th>
-              </tr>
-            </thead>
+            <thead><tr><th>SERVICE TYPE</th><th style="text-align:right">$/MAN HR</th></tr></thead>
             <tbody id="job-type-rates-body"></tbody>
           </table>
         </div>
 
-        <div style="margin-top:24px;padding-top:20px;border-top:1px solid #1a2035">
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #1a2035">
           <div class="section-title">JOBBER CONNECTION</div>
           <label class="label">RENDER PROXY URL</label>
-          <input class="input" id="proxy-url-input" value="https://jobslot-proxy.onrender.com" style="margin-bottom:8px">
-          <button onclick="syncJobber()" style="width:100%;padding:9px;border-radius:8px;background:#064e3b;color:#4ade80;border:none;font-weight:700;font-size:13px;cursor:pointer">⟳ Sync Now</button>
+          <input class="input" id="proxy-url-input" value="https://jobslot-proxy.onrender.com" style="margin-bottom:7px">
+          <button onclick="syncJobber()" style="width:100%;padding:8px;border-radius:7px;background:#064e3b;color:#4ade80;border:none;font-weight:700;font-size:12px;cursor:pointer">⟳ Sync Now</button>
         </div>
       </div>
-    </div>
+    </div><!-- end left-panel -->
 
     <div class="right-panel" id="right-panel">
+      <!-- AI Banner -->
       <div id="ai-banner" style="display:none" class="ai-banner pulse">
-        <span style="font-size:16px">🤖</span>
-        <span style="font-size:13px;color:#7dd3fc">Analyzing profit, drive time &amp; existing Jobber jobs to find the optimal slot...</span>
+        <span style="font-size:15px">🤖</span>
+        <span style="font-size:12px;color:#7dd3fc">Analyzing schedule, crew availability &amp; profit to find the top 3 slots...</span>
       </div>
-      <div id="rec-banner" style="display:none" class="rec-banner slide-in"></div>
-      <div class="day-summary" id="day-summary"></div>
-      <div class="week-grid" id="week-grid"></div>
-      <div class="legend">🔒 = Synced from Jobber (locked) &nbsp;|&nbsp; Click non-Jobber jobs to remove</div>
-      <div class="empty-state" id="empty-state">
-        <div style="font-size:36px;margin-bottom:10px">📋</div>
-        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;margin-bottom:5px">No jobs yet</div>
-        <div style="font-size:12px">Sync from Jobber or add a new job to get started</div>
+
+      <!-- Suggestions -->
+      <div id="suggestions-area" style="display:none" class="slide-in">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:#38bdf8">📋 Top 3 Suggestions — <span id="suggestion-job-name" style="color:#94a3b8;font-weight:500"></span></div>
+          <button onclick="dismissSuggestions()" style="font-size:10px;color:#475569;background:none;border:none;cursor:pointer">✕ Dismiss</button>
+        </div>
+        <div class="suggestions-container" id="suggestions-container"></div>
+        <button class="confirm-btn" id="confirm-btn" onclick="confirmSchedule()" disabled>✓ Confirm Selected Slot</button>
+      </div>
+
+      <!-- Month View -->
+      <div id="month-view">
+        <div class="month-nav">
+          <button class="month-nav-btn" onclick="changeMonth(-1)">← Prev</button>
+          <div class="month-title" id="month-title"></div>
+          <button class="month-nav-btn" onclick="changeMonth(1)">Next →</button>
+        </div>
+        <div class="month-grid" id="month-grid"></div>
+      </div>
+
+      <!-- Week Expand -->
+      <div id="week-expand" style="display:none" class="week-expand">
+        <div class="week-expand-header">
+          <span id="week-expand-title" style="font-size:12px;font-weight:700;color:#38bdf8"></span>
+          <button onclick="closeWeekExpand()" style="font-size:11px;color:#475569;background:none;border:none;cursor:pointer">✕ Close</button>
+        </div>
+        <div class="week-grid-inner">
+          <table class="grid-table" id="week-grid-table"></table>
+        </div>
+      </div>
+
+      <div class="legend">🔒 Synced from Jobber · Click non-Jobber chips to remove · Click week row to expand</div>
+      <div class="empty-state" id="empty-state" style="display:none">
+        <div style="font-size:32px;margin-bottom:8px">📋</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;margin-bottom:4px">No jobs yet</div>
+        <div style="font-size:11px">Sync from Jobber or add a new job to get started</div>
       </div>
     </div>
   </div>
@@ -307,89 +407,53 @@
 <script>
 const PASSWORD = "PristineSchedule";
 const PROXY_URL = "https://jobslot-proxy.onrender.com";
-const SHORT_DAYS = ["MON","TUE","WED","THU","FRI"];
+const ALL_DAYS = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
 const SLOT_HOURS = [7,8,9,10,11,12,13,14,15,16,17];
+const DAY_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+const SERVICE_TYPES = [
+  "Pressure Washing","Soft Washing","Interior Window Cleaning","Exterior Window Cleaning",
+  "Hood Cleaning","Commercial Concrete","Restoration","Low Moisture Carpet Cleaning","Electrical"
+];
 const SERVICE_COLORS = {
   "Pressure Washing":{bg:"#0ea5e9",text:"#fff"},
   "Soft Washing":{bg:"#22c55e",text:"#fff"},
-  "Window Cleaning":{bg:"#a78bfa",text:"#fff"},
-  "Restoration":{bg:"#f97316",text:"#fff"},
+  "Interior Window Cleaning":{bg:"#a78bfa",text:"#fff"},
+  "Exterior Window Cleaning":{bg:"#7c3aed",text:"#fff"},
+  "Hood Cleaning":{bg:"#f97316",text:"#fff"},
+  "Commercial Concrete":{bg:"#64748b",text:"#fff"},
+  "Restoration":{bg:"#dc2626",text:"#fff"},
   "Low Moisture Carpet Cleaning":{bg:"#ec4899",text:"#fff"},
   "Electrical":{bg:"#eab308",text:"#000"},
   "Jobber Job":{bg:"#0ea5e9",text:"#fff"},
 };
 
-const SERVICE_TYPES = [
-  "Pressure Washing",
-  "Soft Washing",
-  "Window Cleaning",
-  "Restoration",
-  "Low Moisture Carpet Cleaning",
-  "Electrical",
+// ── PERSISTENT STORAGE ────────────────────────────────────────────────────────
+const JOB_TYPE_RATE_DEFAULTS = {
+  "Pressure Washing":85,"Soft Washing":75,"Interior Window Cleaning":70,
+  "Exterior Window Cleaning":70,"Hood Cleaning":90,"Commercial Concrete":80,
+  "Restoration":95,"Low Moisture Carpet Cleaning":80,"Electrical":110
+};
+const TECH_DEFAULTS = [
+  {name:"",canDrive:true,available:true}
 ];
+function _ls(key){ try{ const v=localStorage.getItem(key); return v?JSON.parse(v):null; }catch(e){return null;} }
+function _lsSave(key,val){ try{ localStorage.setItem(key,JSON.stringify(val)); }catch(e){} }
+function saveParams(){ _lsSave("kip_params2",PARAMS); }
+function saveRates(){ _lsSave("kip_rates2",JOB_TYPE_RATES); }
+function saveTechs(){ _lsSave("kip_techs",TECHS); }
 
-// ── PERSISTENT STORAGE ───────────────────────────────────────────────────────
-const JOB_TYPE_RATE_DEFAULTS = {"Pressure Washing":85,"Soft Washing":75,"Window Cleaning":70,"Restoration":95,"Low Moisture Carpet Cleaning":80,"Electrical":110};
-function _loadSaved(key){ try{ const v=localStorage.getItem(key); return v?JSON.parse(v):null; }catch(e){return null;} }
-function saveParams(){ try{ localStorage.setItem("kip_params",JSON.stringify(PARAMS)); }catch(e){} }
-function saveRates(){ try{ localStorage.setItem("kip_rates",JSON.stringify(JOB_TYPE_RATES)); }catch(e){} }
+const PARAMS = Object.assign({labor:65,crew:2,totalcrews:5,fuel:0.21,start:7,end:18,baseAddress:"",proxyUrl:""}, _ls("kip_params2")||{});
+const JOB_TYPE_RATES = Object.assign({}, JOB_TYPE_RATE_DEFAULTS, _ls("kip_rates2")||{});
+const TECHS = _ls("kip_techs") || [{name:"",canDrive:true,available:true}];
 
-const PARAMS = Object.assign({labor:65,crew:2,fuel:0.21,start:7,end:18,baseAddress:""}, _loadSaved("kip_params")||{});
-const JOB_TYPE_RATES = Object.assign({}, JOB_TYPE_RATE_DEFAULTS, _loadSaved("kip_rates")||{});
-
-let jobs = [], schedule = {}, lineItems = [{desc:"",cost:0}];
-let calculatedHours = null;
-let milesLookupTimer = null;
-
-// ── MILEAGE AUTO-CALCULATE ────────────────────────────────────────────────────
-let _milesDebounce = null;
-function autoCalculateMiles(){
-  clearTimeout(_milesDebounce);
-  _milesDebounce = setTimeout(_doCalculateMiles, 600); // wait 600ms after last blur
-}
-
-async function _doCalculateMiles(){
-  const jobAddr = document.getElementById("job-address").value.trim();
-  const overrideBase = document.getElementById("job-base-override")?.value.trim();
-  const baseAddr = overrideBase || PARAMS.baseAddress;
-
-  if(!jobAddr || !baseAddr){
-    document.getElementById("miles-calc-hint").style.display="none";
-    return;
-  }
-
-  // Don't re-fetch if address hasn't changed
-  const cacheKey = `${baseAddr}||${jobAddr}`;
-  if(autoCalculateMiles._lastKey === cacheKey) return;
-  autoCalculateMiles._lastKey = cacheKey;
-
-  const hint = document.getElementById("miles-calc-hint");
-  hint.style.display = "block";
-  hint.style.color = "";
-  hint.textContent = "📍 Calculating drive distance...";
-
-  try {
-    const proxyUrl = (document.getElementById("proxy-url-input")?.value || PROXY_URL).replace(/\/$/,"");
-    const res = await fetch(`${proxyUrl}/distance?` + new URLSearchParams({ origin: baseAddr, destination: jobAddr }));
-    const data = await res.json();
-
-    if(!res.ok || data.error) throw new Error(data.error || "Distance lookup failed");
-
-    const miles = data.miles;
-    hint.textContent = `→ ${miles} miles driving (${data.duration}) · Click to apply`;
-    hint.onclick = () => {
-      document.getElementById("job-miles").value = miles;
-      updateProfitPreview();
-      hint.textContent = `✓ ${miles} miles applied`;
-      hint.onclick = null;
-    };
-  } catch(err) {
-    hint.textContent = `✗ ${err.message} — enter miles manually`;
-    hint.style.color = "#f87171";
-    setTimeout(() => { hint.style.display="none"; hint.style.color=""; }, 4000);
-  }
-}
-autoCalculateMiles._lastKey = "";
+let jobs=[], schedule={}, lineItems=[{desc:"",cost:0}];
+let calculatedHours=null;
+let jobQueue=[];
+let currentSuggestions=[], selectedSuggestionIdx=0, pendingJob=null;
+let expandedWeekKey=null;
+let viewMonth=new Date().getMonth(), viewYear=new Date().getFullYear();
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 function doLogin(){
@@ -397,10 +461,8 @@ function doLogin(){
     sessionStorage.setItem("kip_auth","1");
     document.getElementById("login-screen").style.display="none";
     document.getElementById("app-screen").style.display="flex";
-    renderLineItems(); renderGrid(); renderDaySummary(); renderJobTypeRates();
-  } else {
-    document.getElementById("login-error").textContent="Incorrect password.";
-  }
+    initApp();
+  } else { document.getElementById("login-error").textContent="Incorrect password."; }
 }
 function doLogout(){ sessionStorage.removeItem("kip_auth"); location.reload(); }
 if(sessionStorage.getItem("kip_auth")==="1"){
@@ -410,178 +472,242 @@ if(sessionStorage.getItem("kip_auth")==="1"){
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
 function setTab(t){
-  ["add","params"].forEach(x=>{
-    const el=document.getElementById("tab-"+x);
-    if(el) el.style.display=x===t?"block":"none";
-  });
-  document.querySelectorAll(".tab-btn").forEach((b,i)=>{
-    b.classList.toggle("active",["add","params","schedule"][i]===t);
-  });
-  const isSchedule=t==="schedule";
-  document.getElementById("main-area").className="main "+(isSchedule?"full":"split");
-  document.getElementById("left-panel").style.display=isSchedule?"none":"block";
+  ["add","params"].forEach(x=>{ const el=document.getElementById("tab-"+x); if(el) el.style.display=x===t?"block":"none"; });
+  document.querySelectorAll(".tab-btn").forEach((b,i)=>b.classList.toggle("active",["add","params","schedule"][i]===t));
+  const isSched=t==="schedule";
+  document.getElementById("main-area").className="main "+(isSched?"full":"split");
+  document.getElementById("left-panel").style.display=isSched?"none":"block";
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-function fmtHour(h){const s=h>=12?"PM":"AM",d=h>12?h-12:h===0?12:h;return `${d}:00 ${s}`}
-function calcProfit(j){return j.revenue-j.estimatedHours*PARAMS.labor*PARAMS.crew-j.distanceMiles*2*PARAMS.fuel}
+function fmtHour(h){const s=h>=12?"PM":"AM",d=h>12?h-12:(h===0?12:h);return `${d}:00 ${s}`}
+function calcProfit(j){return j.revenue - j.estimatedHours*PARAMS.labor*PARAMS.crew - j.distanceMiles*2*PARAMS.fuel}
 function getJobById(id){return jobs.find(j=>j.id===id)}
+function getProxyUrl(){ return (document.getElementById("proxy-url-input")?.value||PROXY_URL).replace(/\/$/,""); }
 
-function getAllJobsForDay(dayShort){
-  const result=[];
-  Object.entries(schedule).forEach(([key,ids])=>{
-    if(!key.startsWith(dayShort)) return;
-    const hour=parseInt(key.split("-")[1]);
-    (ids||[]).forEach(id=>{
-      const job=getJobById(id);
-      if(job) result.push({key,hour,job});
-    });
-  });
-  return result;
+function getJobsForDate(dateStr){
+  return Object.entries(schedule).filter(([k])=>k.startsWith(dateStr+"-")).flatMap(([,ids])=>ids.map(getJobById).filter(Boolean));
 }
-
-function addToSchedule(day,hour,jobId){
-  const key=`${day}-${hour}`;
+function addToSchedule(day,hour,jobId,dateStr){
+  const key=`${dateStr||day}-${hour}`;
   if(!schedule[key]) schedule[key]=[];
   if(!schedule[key].includes(jobId)) schedule[key].push(jobId);
 }
-
 function removeFromSchedule(key,jobId){
   if(!schedule[key]) return;
   schedule[key]=schedule[key].filter(id=>id!==jobId);
-  if(schedule[key].length===0) delete schedule[key];
-  renderGrid(); renderDaySummary();
+  if(!schedule[key].length) delete schedule[key];
+  renderMonthView(); if(expandedWeekKey) renderWeekExpand(expandedWeekKey);
 }
 
 // ── PARAMS ────────────────────────────────────────────────────────────────────
 function updateParam(k,v){
   if(k==="baseAddress"){ PARAMS.baseAddress=v; saveParams(); return; }
+  if(k==="proxyUrl"){ PARAMS.proxyUrl=v; saveParams(); return; }
   PARAMS[k]=parseFloat(v);
-  const labels={labor:`$${v}`,crew:v,fuel:`$${parseFloat(v).toFixed(2)}`,start:fmtHour(parseInt(v)),end:fmtHour(parseInt(v))};
-  document.getElementById("lbl-"+k).textContent=labels[k];
-  updateProfitPreview();
-  saveParams();
+  const labels={labor:`$${v}`,crew:v,totalcrews:v,fuel:`$${parseFloat(v).toFixed(2)}`,start:fmtHour(parseInt(v)),end:fmtHour(parseInt(v))};
+  const el=document.getElementById("lbl-"+k);
+  if(el) el.textContent=labels[k];
+  updateProfitPreview(); saveParams();
 }
 
-// ── JOB TYPE RATES TABLE ──────────────────────────────────────────────────────
+// ── TECH LIST ─────────────────────────────────────────────────────────────────
+function renderTechList(){
+  const c=document.getElementById("tech-list"); if(!c) return; c.innerHTML="";
+  TECHS.forEach((t,i)=>{
+    const row=document.createElement("div"); row.className="tech-row";
+    row.innerHTML=`
+      <input class="input" style="padding:4px 6px;font-size:11px" placeholder="Name" value="${t.name||""}" oninput="TECHS[${i}].name=this.value;saveTechs()">
+      <select class="input" style="padding:4px 5px;font-size:10px" onchange="TECHS[${i}].canDrive=this.value==='yes';saveTechs()">
+        <option value="yes"${t.canDrive?" selected":""}>Yes</option>
+        <option value="no"${!t.canDrive?" selected":""}>No</option>
+      </select>
+      <button class="avail-toggle ${t.available?"avail-yes":"avail-no"}" onclick="TECHS[${i}].available=!TECHS[${i}].available;saveTechs();renderTechList()">${t.available?"Available":"Unavail."}</button>
+      <button class="li-remove" onclick="TECHS.splice(${i},1);saveTechs();renderTechList()">×</button>`;
+    c.appendChild(row);
+  });
+}
+function addTech(){ TECHS.push({name:"",canDrive:true,available:true}); saveTechs(); renderTechList(); }
+
+// ── JOB TYPE RATES ────────────────────────────────────────────────────────────
 function renderJobTypeRates(){
-  const tbody = document.getElementById("job-type-rates-body");
-  if(!tbody) return;
-  tbody.innerHTML = "";
-  SERVICE_TYPES.forEach(svc => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td style="color:#94a3b8">${svc}</td>
-      <td style="text-align:right">
-        <input class="rate-input" type="number" min="1" max="500" value="${JOB_TYPE_RATES[svc]||75}"
-          onchange="JOB_TYPE_RATES['${svc}']=parseFloat(this.value)||75; updateHoursHint(); saveRates();">
-      </td>`;
+  const tbody=document.getElementById("job-type-rates-body"); if(!tbody) return; tbody.innerHTML="";
+  SERVICE_TYPES.forEach(svc=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td style="color:#94a3b8">${svc}</td>
+      <td style="text-align:right"><input class="rate-input" type="number" min="1" max="500" value="${JOB_TYPE_RATES[svc]||75}"
+        onchange="JOB_TYPE_RATES['${svc}']=parseFloat(this.value)||75;updateHoursHint();saveRates()"></td>`;
     tbody.appendChild(tr);
   });
 }
 
-// ── QUOTE LOOKUP ──────────────────────────────────────────────────────────────
-async function lookupQuote(){
-  const qNum = document.getElementById("quote-number-input").value.trim();
-  if(!qNum){ setQuoteStatus("Enter a quote number first.", "err"); return; }
-  const btn = document.getElementById("lookup-btn");
-  const statusEl = document.getElementById("quote-status");
-  btn.disabled = true;
-  btn.textContent = "⏳ Looking up...";
-  setQuoteStatus("Fetching from Jobber...", "");
+// ── QUOTE LOOKUP (single + batch) ─────────────────────────────────────────────
+async function lookupQuotes(){
+  const raw=document.getElementById("quote-number-input").value.trim();
+  if(!raw){ setQuoteStatus("Enter a quote number first.","err"); return; }
 
-  try {
-    const url = (document.getElementById("proxy-url-input")?.value || PROXY_URL).replace(/\/$/,"");
-    const res = await fetch(`${url}/quote/${encodeURIComponent(qNum)}`);
-    const data = await res.json();
+  const nums=raw.split(",").map(s=>s.trim()).filter(Boolean);
+  const btn=document.getElementById("lookup-btn");
+  btn.disabled=true; btn.textContent="⏳ Looking up...";
+  setQuoteStatus("","");
 
-    if(!res.ok || data.error){
-      throw new Error(data.error || `Server error ${res.status}`);
-    }
-
-    const q = data.quote;
-
-    // Populate form fields
-    document.getElementById("job-name").value = q.clientName || q.title || "";
-    document.getElementById("job-address").value = q.address || "";
-    // Trigger miles calculation now that address is populated
-    autoCalculateMiles._lastKey = ""; // clear cache so it recalculates
-    autoCalculateMiles();
-
-    // Populate line items
-    if(q.lineItems && q.lineItems.length > 0){
-      lineItems = q.lineItems.map(li => ({ desc: li.desc, cost: li.cost }));
-    } else {
-      lineItems = [{ desc: q.title || "Service", cost: q.total }];
-    }
-    renderLineItems();
-
-    // Calculate suggested hours from revenue ÷ job type rate
-    calculatedHours = null;
-    updateHoursHint();
-
-    setQuoteStatus(`✓ Quote #${q.quoteNumber} loaded — ${q.clientName}`, "ok");
-
-  } catch(err){
-    setQuoteStatus(`✗ ${err.message}`, "err");
-  }
-
-  btn.disabled = false;
-  btn.textContent = "🔍 Lookup";
-}
-
-function setQuoteStatus(msg, type){
-  const el = document.getElementById("quote-status");
-  el.textContent = msg;
-  el.className = "quote-status" + (type === "ok" ? " quote-ok" : type === "err" ? " quote-err" : "");
-}
-
-// Called when service type changes or revenue changes — show calculated hours hint
-function updateHoursHint(){
-  const svc = document.getElementById("job-service").value;
-  const rate = JOB_TYPE_RATES[svc] || 75;
-  const rev = lineItems.reduce((s,i)=>s+Number(i.cost||0),0);
-  const hint = document.getElementById("hours-calc-hint");
-
-  if(rev > 0 && rate > 0){
-    const crew = PARAMS.crew || 1;
-    calculatedHours = Math.ceil((rev / (rate * crew)) * 4) / 4; // round UP to nearest 0.25hr (15 min)
-    calculatedHours = Math.max(0.25, calculatedHours);
-    hint.style.display = "block";
-    hint.textContent = `→ Calculated: ${calculatedHours}h at $${rate}/man hr · Click to apply`;
+  if(nums.length===1){
+    // Single lookup
+    try{
+      const res=await fetch(`${getProxyUrl()}/quote/${encodeURIComponent(nums[0])}`);
+      const data=await res.json();
+      if(!res.ok||data.error) throw new Error(data.error||`Server error ${res.status}`);
+      fillFormFromQuote(data.quote);
+      setQuoteStatus(`✓ Quote #${data.quote.quoteNumber} loaded — ${data.quote.clientName}`,"ok");
+    }catch(e){ setQuoteStatus(`✗ ${e.message}`,"err"); }
   } else {
-    hint.style.display = "none";
-    calculatedHours = null;
+    // Batch lookup
+    setQuoteStatus(`Fetching ${nums.length} quotes...`,"");
+    try{
+      const res=await fetch(`${getProxyUrl()}/quotes/batch`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({quoteNumbers:nums})});
+      const data=await res.json();
+      if(!res.ok||data.error) throw new Error(data.error||`Server error ${res.status}`);
+      data.results.forEach(r=>{ if(r.success) addQuoteToQueue(r.quote); });
+      const errMsgs=data.errors.map(e=>`#${e.quoteNumber}: ${e.error}`).join(", ");
+      setQuoteStatus(`✓ ${data.results.length} added to queue${data.errors.length?` · Errors: ${errMsgs}`:""}`, data.errors.length?"":"ok");
+    }catch(e){ setQuoteStatus(`✗ ${e.message}`,"err"); }
   }
+
+  btn.disabled=false; btn.textContent="🔍 Lookup";
+  document.getElementById("quote-number-input").value="";
 }
 
-function applyCalculatedHours(){
-  if(calculatedHours !== null){
-    document.getElementById("job-hours").value = calculatedHours;
-    updateProfitPreview();
-  }
+function fillFormFromQuote(q){
+  document.getElementById("job-name").value=q.clientName||q.title||"";
+  document.getElementById("job-address").value=q.address||"";
+  if(q.lineItems&&q.lineItems.length){ lineItems=q.lineItems.map(li=>({desc:li.desc,cost:li.cost})); }
+  else { lineItems=[{desc:q.title||"Service",cost:q.total}]; }
+  renderLineItems();
+  autoCalculateMiles._lastKey="";
+  autoCalculateMiles();
+  calculatedHours=null; updateHoursHint();
 }
 
-function onServiceChange(){
-  updateHoursHint();
-  updateProfitPreview();
+function setQuoteStatus(msg,type){
+  const el=document.getElementById("quote-status");
+  el.textContent=msg;
+  el.className="quote-status"+(type==="ok"?" quote-ok":type==="err"?" quote-err":"");
 }
+
+// ── QUEUE ─────────────────────────────────────────────────────────────────────
+function addQuoteToQueue(quote){
+  const job={
+    id:Date.now()+Math.random(),
+    name:quote.clientName||quote.title||`Quote #${quote.quoteNumber}`,
+    service:document.getElementById("job-service").value,
+    address:quote.address||"",
+    estimatedHours:2, distanceMiles:0,
+    preferredDay:"", preferredTime:"",
+    revenue:quote.total,
+    lineItems:quote.lineItems||[],
+    costPerManHour:JOB_TYPE_RATES[document.getElementById("job-service").value]||75,
+    fromQueue:true,
+  };
+  jobQueue.push(job);
+  renderQueue();
+}
+
+function addToQueue(){
+  const name=document.getElementById("job-name").value.trim();
+  const address=document.getElementById("job-address").value.trim();
+  if(!name){ alert("Enter a job name."); return; }
+  const revenue=lineItems.reduce((s,i)=>s+Number(i.cost||0),0);
+  const svc=document.getElementById("job-service").value;
+  jobQueue.push({
+    id:Date.now()+Math.random(), name, service:svc, address,
+    estimatedHours:parseFloat(document.getElementById("job-hours").value)||2,
+    distanceMiles:parseFloat(document.getElementById("job-miles").value)||0,
+    preferredDay:document.getElementById("job-pref-day").value,
+    preferredTime:document.getElementById("job-pref-time").value,
+    revenue, lineItems:[...lineItems],
+    costPerManHour:JOB_TYPE_RATES[svc]||75,
+  });
+  resetForm();
+  renderQueue();
+}
+
+function renderQueue(){
+  const sec=document.getElementById("queue-section");
+  const list=document.getElementById("queue-list");
+  const cnt=document.getElementById("queue-count");
+  if(!jobQueue.length){ sec.style.display="none"; return; }
+  sec.style.display="block";
+  cnt.textContent=jobQueue.length;
+  list.innerHTML="";
+  jobQueue.forEach((job,i)=>{
+    const div=document.createElement("div"); div.className="queue-item pending";
+    div.innerHTML=`<div style="flex:1;min-width:0">
+      <div style="font-size:11px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${job.name}</div>
+      <div style="font-size:10px;color:#64748b">${job.service} · $${job.revenue} · ${job.estimatedHours}h</div>
+    </div>
+    <button class="queue-remove" onclick="removeFromQueue(${i})">×</button>`;
+    list.appendChild(div);
+  });
+}
+function removeFromQueue(i){ jobQueue.splice(i,1); renderQueue(); }
+function clearQueue(){ jobQueue=[]; renderQueue(); }
+
+async function scheduleQueue(){
+  if(!jobQueue.length) return;
+  const btn=document.getElementById("schedule-queue-btn");
+  btn.disabled=true; btn.textContent="🤖 Scheduling...";
+  setTab("schedule");
+  for(const job of jobQueue){
+    jobs.push(job);
+    await runAI(job);
+  }
+  jobQueue=[];
+  renderQueue();
+  btn.disabled=false; btn.textContent="⚡ Schedule All Queued Jobs";
+}
+
+// ── MILEAGE AUTO-CALCULATE ────────────────────────────────────────────────────
+let _milesDebounce=null;
+function autoCalculateMiles(){ clearTimeout(_milesDebounce); _milesDebounce=setTimeout(_doCalcMiles,600); }
+async function _doCalcMiles(){
+  const jobAddr=document.getElementById("job-address").value.trim();
+  const baseOverride=document.getElementById("job-base-override")?.value.trim();
+  const baseAddr=baseOverride||PARAMS.baseAddress;
+  if(!jobAddr||!baseAddr){ document.getElementById("miles-calc-hint").style.display="none"; return; }
+  const cacheKey=`${baseAddr}||${jobAddr}`;
+  if(autoCalculateMiles._lastKey===cacheKey) return;
+  autoCalculateMiles._lastKey=cacheKey;
+  const hint=document.getElementById("miles-calc-hint");
+  hint.style.display="block"; hint.style.color=""; hint.textContent="📍 Calculating...";
+  try{
+    const res=await fetch(`${getProxyUrl()}/distance?`+new URLSearchParams({origin:baseAddr,destination:jobAddr}));
+    const data=await res.json();
+    if(!res.ok||data.error) throw new Error(data.error||"Distance lookup failed");
+    const miles=data.miles;
+    hint.textContent=`→ ${miles} miles (${data.duration}) · Click to apply`;
+    hint.onclick=()=>{ document.getElementById("job-miles").value=miles; updateProfitPreview(); hint.textContent=`✓ ${miles} miles applied`; hint.onclick=null; };
+  }catch(e){
+    hint.textContent=`✗ ${e.message} — enter manually`;
+    hint.style.color="#f87171";
+    setTimeout(()=>{ hint.style.display="none"; hint.style.color=""; },4000);
+  }
+}
+autoCalculateMiles._lastKey="";
 
 // ── LINE ITEMS ────────────────────────────────────────────────────────────────
 function renderLineItems(){
   const c=document.getElementById("line-items"); c.innerHTML="";
   lineItems.forEach((li,i)=>{
     const row=document.createElement("div"); row.className="li-row";
-    row.innerHTML=`<input class="input" style="padding:7px 9px;font-size:12px" placeholder="Description" value="${li.desc||""}" oninput="lineItems[${i}].desc=this.value">
-      <input class="input" style="padding:7px 9px;font-size:12px" type="number" placeholder="$0" value="${li.cost||""}" oninput="lineItems[${i}].cost=parseFloat(this.value)||0;updateProfitPreview();updateHoursHint()">
+    row.innerHTML=`<input class="input" style="padding:6px 8px;font-size:11px" placeholder="Description" value="${li.desc||""}" oninput="lineItems[${i}].desc=this.value">
+      <input class="input" style="padding:6px 8px;font-size:11px" type="number" placeholder="$0" value="${li.cost||""}" oninput="lineItems[${i}].cost=parseFloat(this.value)||0;updateProfitPreview();updateHoursHint()">
       <button class="li-remove" onclick="removeLineItem(${i})">×</button>`;
     c.appendChild(row);
   });
-  updateProfitPreview();
-  updateHoursHint();
+  updateProfitPreview(); updateHoursHint();
 }
-function addLineItem(){lineItems.push({desc:"",cost:0});renderLineItems()}
-function removeLineItem(i){lineItems.splice(i,1);renderLineItems()}
+function addLineItem(){ lineItems.push({desc:"",cost:0}); renderLineItems(); }
+function removeLineItem(i){ lineItems.splice(i,1); renderLineItems(); }
 
 function updateProfitPreview(){
   const rev=lineItems.reduce((s,i)=>s+Number(i.cost||0),0);
@@ -598,148 +724,323 @@ function updateProfitPreview(){
   } else { pg.style.display="none"; }
 }
 
+function updateHoursHint(){
+  const svc=document.getElementById("job-service").value;
+  const rate=JOB_TYPE_RATES[svc]||75;
+  const rev=lineItems.reduce((s,i)=>s+Number(i.cost||0),0);
+  const hint=document.getElementById("hours-calc-hint");
+  if(rev>0&&rate>0){
+    calculatedHours=Math.ceil((rev/(rate*PARAMS.crew))*4)/4;
+    calculatedHours=Math.max(0.25,calculatedHours);
+    hint.style.display="block";
+    hint.textContent=`→ Calc: ${calculatedHours}h at $${rate}/man hr · Click to apply`;
+  } else { hint.style.display="none"; calculatedHours=null; }
+}
+function applyCalculatedHours(){ if(calculatedHours!==null){ document.getElementById("job-hours").value=calculatedHours; updateProfitPreview(); } }
+function onServiceChange(){ updateHoursHint(); updateProfitPreview(); }
+
 // ── ADD JOB & AI ──────────────────────────────────────────────────────────────
 async function addJob(){
   const name=document.getElementById("job-name").value.trim();
   const address=document.getElementById("job-address").value.trim();
-  if(!name||!address){alert("Please enter a job name and address.");return;}
+  if(!name||!address){ alert("Please enter a job name and address."); return; }
   const revenue=lineItems.reduce((s,i)=>s+Number(i.cost||0),0);
   const svc=document.getElementById("job-service").value;
   const job={
-    id:Date.now(), name,
-    service:svc,
-    address,
+    id:Date.now(), name, service:svc, address,
     estimatedHours:parseFloat(document.getElementById("job-hours").value)||2,
     distanceMiles:parseFloat(document.getElementById("job-miles").value)||0,
     preferredDay:document.getElementById("job-pref-day").value,
     preferredTime:document.getElementById("job-pref-time").value,
     revenue, lineItems:[...lineItems],
-    costPerManHour: JOB_TYPE_RATES[svc] || 75,
+    costPerManHour:JOB_TYPE_RATES[svc]||75,
   };
   jobs.push(job);
-
-  // Reset form
-  document.getElementById("job-name").value="";
-  document.getElementById("job-address").value="";
-  document.getElementById("job-base-override").value="";
-  document.getElementById("quote-number-input").value="";
-  document.getElementById("quote-status").textContent="";
-  document.getElementById("hours-calc-hint").style.display="none";
-  document.getElementById("miles-calc-hint").style.display="none";
-  autoCalculateMiles._lastKey = ""; // reset cache so next job recalculates
-  calculatedHours=null;
-  lineItems=[{desc:"",cost:0}]; renderLineItems();
-
   document.getElementById("add-btn").disabled=true;
-  document.getElementById("add-btn").textContent="🤖 Finding Best Slot...";
+  document.getElementById("add-btn").textContent="🤖 Getting Suggestions...";
+  resetForm();
   setTab("schedule");
   await runAI(job);
   document.getElementById("add-btn").disabled=false;
-  document.getElementById("add-btn").textContent="⚡ Add & Auto-Schedule";
+  document.getElementById("add-btn").textContent="⚡ Get AI Suggestions";
 }
 
 async function runAI(job){
+  pendingJob=job;
   document.getElementById("ai-banner").style.display="flex";
-  document.getElementById("rec-banner").style.display="none";
-  document.getElementById("empty-state").style.display="none";
+  document.getElementById("suggestions-area").style.display="none";
 
-  const scheduledSummary=Object.entries(schedule).map(([key,ids])=>{
+  // Build compact schedule summary (last 3 months dates only — avoid huge prompt)
+  const scheduledSummary=Object.entries(schedule).slice(0,60).map(([key,ids])=>{
     const names=(ids||[]).map(id=>{const j=getJobById(id);return j?j.name:null}).filter(Boolean).join(", ");
-    const hour=parseInt(key.split("-")[1]);
-    return names?`${key} (${fmtHour(hour)}): ${names}`:null;
+    return names?`${key}: ${names}`:null;
   }).filter(Boolean).join("\n");
 
-  // Build job type rate context for AI
-  const rateContext = SERVICE_TYPES.map(s=>`  ${s}: $${JOB_TYPE_RATES[s]||75}/man hr`).join("\n");
+  const availTechs=TECHS.filter(t=>t.available&&t.name);
+  const driverTechs=availTechs.filter(t=>t.canDrive);
+  const rateContext=SERVICE_TYPES.map(s=>`  ${s}: $${JOB_TYPE_RATES[s]||75}/man hr`).join("\n");
 
-  const prompt=`You are a field service scheduling optimizer for a company that does: Pressure Washing, Soft Washing, Window Cleaning, Restoration, Low Moisture Carpet Cleaning, Electrical. They run 5-7 crews simultaneously.
+  const prompt=`You are a field service scheduling optimizer. Return ONLY valid JSON, no other text.
 
 Business parameters:
-- Labor rate: $${PARAMS.labor}/hr per person, crew size: ${PARAMS.crew}
-- Fuel cost: $${PARAMS.fuel}/mile
-- Workday: ${fmtHour(PARAMS.start)} to ${fmtHour(PARAMS.end)}
+- Labor: $${PARAMS.labor}/hr/person, Crew size: ${PARAMS.crew}, Total crews: ${PARAMS.totalcrews}
+- Fuel: $${PARAMS.fuel}/mile, Workday: ${fmtHour(PARAMS.start)}–${fmtHour(PARAMS.end)}
+- 7-day week (Mon–Sun scheduling available)
 
-Cost per man hour by job type (used for crew time estimation):
+Available technicians (${availTechs.length} available):
+${availTechs.map(t=>`  ${t.name} ${t.canDrive?"(driver)":"(no drive)"}`).join("\n")||"  None listed"}
+
+Cost per man hour by job type:
 ${rateContext}
 
 New job to schedule:
 - Name: ${job.name}
 - Service: ${job.service}
 - Address: ${job.address}
-- Duration: ${job.estimatedHours} hours (based on $${job.costPerManHour}/man hr rate for ${job.service})
+- Duration: ${job.estimatedHours}h (cost rate: $${job.costPerManHour}/man hr)
 - Revenue: $${job.revenue}
 - Distance: ${job.distanceMiles} miles
-- Profit: $${calcProfit(job).toFixed(2)}
-- Line items: ${job.lineItems.map(li=>`${li.desc} ($${li.cost})`).join(", ")||"None"}
-- Client preferred day: ${job.preferredDay||"flexible"}
-- Client preferred time: ${job.preferredTime||"flexible"}
+- Profit: $${calcProfit(job).toFixed(0)}
+- Line items: ${job.lineItems.map(l=>`${l.desc}($${l.cost})`).join(",")||"none"}
+- Client pref day: ${job.preferredDay||"flexible"}
+- Client pref time: ${job.preferredTime||"flexible"}
 
-CURRENT SCHEDULE (multiple crews can work the same time slot):
-${scheduledSummary||"Empty"}
+CURRENT SCHEDULE (sample):
+${scheduledSummary||"Empty — no jobs scheduled yet"}
 
-Note: Multiple jobs CAN be scheduled at the same time (different crews). Focus on maximizing daily profit and minimizing drive time.
+Rules:
+- Multiple crews can work same time slot
+- Total concurrent jobs limited to ${PARAMS.totalcrews} crews
+- Assign techs from available list; need at least 1 driver per crew
+- Consider 7-day week; weekends for overflow or client preference
 
-Priorities: 1) Max profit/day  2) Min drive time  3) Client preference
-
-Respond ONLY in valid JSON:
-{"day":"Monday","startHour":9,"reason":"2-3 sentence explanation","profitScore":85,"driveScore":72,"preferenceScore":60,"warnings":[]}`;
+Return exactly this JSON (no markdown, no extra text):
+{"suggestions":[
+  {"day":"Monday","date":"2026-05-18","startHour":9,"reason":"2 sentence explanation","profitScore":85,"driveScore":72,"preferenceScore":60,"warnings":[],"assignedTechs":["Name1","Name2"]},
+  {"day":"Tuesday","date":"2026-05-19","startHour":8,"reason":"2 sentence explanation","profitScore":80,"driveScore":68,"preferenceScore":55,"warnings":[],"assignedTechs":["Name1"]},
+  {"day":"Wednesday","date":"2026-05-20","startHour":10,"reason":"2 sentence explanation","profitScore":75,"driveScore":80,"preferenceScore":70,"warnings":[],"assignedTechs":["Name2"]}
+]}`;
 
   try{
-    const proxyUrl=(document.getElementById("proxy-url-input")?.value||PROXY_URL).replace(/\/$/,"");
-    const res=await fetch(`${proxyUrl}/ai/schedule`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({prompt})
-    });
-    if(!res.ok){
-      const errText=await res.text();
-      throw new Error(`Server ${res.status}: ${errText.slice(0,200)}`);
-    }
+    const res=await fetch(`${getProxyUrl()}/ai/schedule`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});
+    if(!res.ok){ const t=await res.text(); throw new Error(`Server ${res.status}: ${t.slice(0,200)}`); }
     const data=await res.json();
     if(data.error) throw new Error(data.error);
     const text=(data.content||[]).map(c=>c.text||"").join("");
-    const rec=JSON.parse(text.replace(/```json|```/g,"").trim());
-    const dayShort=rec.day.toUpperCase().slice(0,3);
-    addToSchedule(dayShort, rec.startHour, job.id);
-    showRecommendation(rec,job);
+    const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
+    currentSuggestions=parsed.suggestions||[];
+    selectedSuggestionIdx=0;
+    showSuggestions(job);
   }catch(e){
-    const msg = e?.message || JSON.stringify(e) || "Unknown error";
-    console.error("AI error:", msg);
-    showRecommendation({error:`AI error: ${msg}`},job);
+    const msg=e?.message||JSON.stringify(e)||"Unknown error";
+    console.error("AI error:",msg);
+    currentSuggestions=[];
+    document.getElementById("ai-banner").style.display="none";
+    alert(`AI error: ${msg}`);
   }
   document.getElementById("ai-banner").style.display="none";
-  renderGrid(); renderDaySummary();
+  renderMonthView();
 }
 
-function showRecommendation(rec,job){
-  const b=document.getElementById("rec-banner");
-  b.style.display="block";
-  if(rec.error){b.innerHTML=`<span style="color:#f87171">⚠ ${rec.error}</span>`;return;}
-  b.innerHTML=`
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-      <span>✅</span>
-      <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:#38bdf8">Scheduled: ${rec.day} @ ${fmtHour(rec.startHour)}</span>
-      <span style="margin-left:auto;font-size:11px;background:#0f172a;padding:2px 8px;border-radius:6px;color:#94a3b8">${job.name}</span>
-    </div>
-    <p style="font-size:12px;color:#94a3b8;margin-bottom:10px;line-height:1.5">${rec.reason||""}</p>
-    <div class="score-row">
-      ${[["Profit",rec.profitScore,"#4ade80"],["Drive",rec.driveScore,"#60a5fa"],["Preference",rec.preferenceScore,"#c084fc"]].map(([l,s,c])=>`
-        <div>
-          <div style="display:flex;justify-content:space-between"><span style="font-size:10px;color:#64748b">${l}</span><span style="font-size:10px;font-weight:700;color:${c}">${s}/100</span></div>
-          <div class="score-bar-bg"><div class="score-bar" style="width:${s}%;background:${c}"></div></div>
-        </div>`).join("")}
-    </div>
-    ${rec.warnings?.length?`<div style="margin-top:8px;padding:5px 10px;background:#2d1f00;border-radius:6px;font-size:11px;color:#fbbf24">⚠ ${rec.warnings.join(" · ")}</div>`:""}
-  `;
+function showSuggestions(job){
+  const area=document.getElementById("suggestions-area");
+  area.style.display="block";
+  document.getElementById("suggestion-job-name").textContent=job.name;
+  document.getElementById("confirm-btn").disabled=false;
+  const container=document.getElementById("suggestions-container");
+  container.innerHTML="";
+  currentSuggestions.forEach((s,i)=>{
+    const card=document.createElement("div");
+    card.className="suggestion-card"+(i===selectedSuggestionIdx?" selected":"");
+    card.onclick=()=>selectSuggestion(i);
+    const totalScore=Math.round((s.profitScore+s.driveScore+s.preferenceScore)/3);
+    card.innerHTML=`
+      <div class="rank">#${i+1}</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:#38bdf8;margin-bottom:2px;padding-right:24px">${s.day}</div>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:6px">${fmtHour(s.startHour)} · Score: ${totalScore}/100</div>
+      <p style="font-size:10px;color:#64748b;line-height:1.4;margin-bottom:7px">${s.reason}</p>
+      <div class="score-row">
+        ${[["Profit",s.profitScore,"#4ade80"],["Drive",s.driveScore,"#60a5fa"],["Pref",s.preferenceScore,"#c084fc"]].map(([l,sc,c])=>`
+          <div><div style="display:flex;justify-content:space-between"><span style="font-size:9px;color:#64748b">${l}</span><span style="font-size:9px;font-weight:700;color:${c}">${sc}</span></div>
+          <div class="score-bar-bg"><div class="score-bar" style="width:${sc}%;background:${c}"></div></div></div>`).join("")}
+      </div>
+      ${s.assignedTechs?.length?`<div style="margin-top:6px;font-size:9px;color:#64748b">👷 ${s.assignedTechs.join(", ")}</div>`:""}
+      ${s.warnings?.length?`<div style="margin-top:5px;padding:3px 6px;background:#2d1f00;border-radius:4px;font-size:9px;color:#fbbf24">⚠ ${s.warnings.join(" · ")}</div>`:""}
+    `;
+    container.appendChild(card);
+  });
 }
 
-// ── JOBBER SYNC ───────────────────────────────────────────────────────────────
+function selectSuggestion(i){
+  selectedSuggestionIdx=i;
+  document.querySelectorAll(".suggestion-card").forEach((c,j)=>c.classList.toggle("selected",j===i));
+}
+
+function confirmSchedule(){
+  if(!pendingJob||!currentSuggestions.length) return;
+  const s=currentSuggestions[selectedSuggestionIdx];
+  const dayShort=s.day.toUpperCase().slice(0,3);
+  const dateStr=s.date||dayShort;
+  addToSchedule(dayShort,s.startHour,pendingJob.id,dateStr);
+  // Save assigned techs to job
+  pendingJob.assignedTechs=s.assignedTechs||[];
+  dismissSuggestions();
+  renderMonthView();
+  if(expandedWeekKey) renderWeekExpand(expandedWeekKey);
+}
+
+function dismissSuggestions(){
+  document.getElementById("suggestions-area").style.display="none";
+  currentSuggestions=[]; pendingJob=null;
+  document.getElementById("confirm-btn").disabled=true;
+}
+
+// ── MONTH VIEW ────────────────────────────────────────────────────────────────
+function changeMonth(dir){
+  viewMonth+=dir;
+  if(viewMonth>11){viewMonth=0;viewYear++;}
+  if(viewMonth<0){viewMonth=11;viewYear--;}
+  renderMonthView();
+}
+
+function renderMonthView(){
+  document.getElementById("month-title").textContent=`${MONTH_NAMES[viewMonth]} ${viewYear}`;
+  const grid=document.getElementById("month-grid"); grid.innerHTML="";
+
+  // Header
+  const hdr=document.createElement("div"); hdr.className="month-header";
+  ["MON","TUE","WED","THU","FRI","SAT","SUN"].forEach(d=>{
+    const c=document.createElement("div"); c.className="month-header-cell"; c.textContent=d; hdr.appendChild(c);
+  });
+  grid.appendChild(hdr);
+
+  // Build calendar weeks
+  const firstDay=new Date(viewYear,viewMonth,1);
+  // Start from Monday of the week containing the 1st
+  let startMon=new Date(firstDay);
+  const dow=firstDay.getDay(); // 0=Sun
+  const diffToMon=dow===0?-6:1-dow;
+  startMon.setDate(firstDay.getDate()+diffToMon);
+
+  const today=new Date(); today.setHours(0,0,0,0);
+
+  for(let w=0;w<6;w++){
+    const weekStart=new Date(startMon); weekStart.setDate(startMon.getDate()+w*7);
+    // Stop if week is entirely in next month
+    const weekEnd=new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6);
+    if(weekStart.getMonth()>viewMonth&&weekStart.getFullYear()>=viewYear) break;
+
+    const weekKey=weekStart.toISOString().split("T")[0];
+    const row=document.createElement("div");
+    row.className="month-week-row"+(expandedWeekKey===weekKey?" expanded":"");
+    row.onclick=()=>toggleWeekExpand(weekKey,weekStart);
+
+    for(let d=0;d<7;d++){
+      const day=new Date(weekStart); day.setDate(weekStart.getDate()+d);
+      const dateStr=day.toISOString().split("T")[0];
+      const isThisMonth=day.getMonth()===viewMonth;
+      const isToday=day.getTime()===today.getTime();
+      const dayJobs=getJobsForDate(dateStr);
+      const profit=dayJobs.reduce((s,j)=>s+calcProfit(j),0);
+
+      const cell=document.createElement("div"); cell.className="month-day-cell";
+      const numDiv=document.createElement("div");
+      numDiv.className="month-day-num"+(isToday?" today":!isThisMonth?" other-month":"");
+      numDiv.textContent=day.getDate();
+      cell.appendChild(numDiv);
+
+      // Job dots
+      const dotsDiv=document.createElement("div"); dotsDiv.style.lineHeight="1";
+      dayJobs.slice(0,6).forEach(j=>{
+        const dot=document.createElement("span"); dot.className="job-dot";
+        const col=SERVICE_COLORS[j.service]||{bg:"#0ea5e9"};
+        dot.style.background=col.bg;
+        dot.title=j.name; dotsDiv.appendChild(dot);
+      });
+      if(dayJobs.length>6){ const more=document.createElement("span"); more.style.cssText="font-size:8px;color:#64748b"; more.textContent=`+${dayJobs.length-6}`; dotsDiv.appendChild(more); }
+      cell.appendChild(dotsDiv);
+
+      if(profit>0){ const p=document.createElement("div"); p.className="month-day-profit"; p.textContent=`$${profit>=1000?(profit/1000).toFixed(1)+"k":profit.toFixed(0)}`; cell.appendChild(p); }
+      row.appendChild(cell);
+    }
+    grid.appendChild(row);
+  }
+
+  // Show/hide empty state
+  const hasJobs=jobs.length>0;
+  const emptyEl=document.getElementById("empty-state");
+  if(emptyEl) emptyEl.style.display=hasJobs?"none":"block";
+}
+
+function toggleWeekExpand(weekKey,weekStart){
+  if(expandedWeekKey===weekKey){ closeWeekExpand(); return; }
+  expandedWeekKey=weekKey;
+  renderMonthView();
+  renderWeekExpand(weekStart||new Date(weekKey));
+  document.getElementById("week-expand").style.display="block";
+}
+
+function closeWeekExpand(){
+  expandedWeekKey=null;
+  document.getElementById("week-expand").style.display="none";
+  renderMonthView();
+}
+
+function renderWeekExpand(weekStartOrStr){
+  const weekStart=typeof weekStartOrStr==="string"?new Date(weekStartOrStr):weekStartOrStr;
+  // Build 7 dates for this week
+  const dates=[];
+  for(let d=0;d<7;d++){
+    const day=new Date(weekStart); day.setDate(weekStart.getDate()+d);
+    dates.push({date:day,dateStr:day.toISOString().split("T")[0],dayShort:["SUN","MON","TUE","WED","THU","FRI","SAT"][day.getDay()],label:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][d]});
+  }
+  const startDate=dates[0].date;
+  const endDate=dates[6].date;
+  document.getElementById("week-expand-title").textContent=
+    `Week of ${MONTH_NAMES[startDate.getMonth()]} ${startDate.getDate()} – ${endDate.getDate()}, ${startDate.getFullYear()}`;
+
+  const table=document.getElementById("week-grid-table"); table.innerHTML="";
+  // Header row
+  const hdrRow=document.createElement("tr");
+  hdrRow.innerHTML=`<th class="grid-th" style="width:48px"></th>`+dates.map(d=>`<th class="grid-th">${d.label}<br><span style="font-size:9px;color:#475569;font-weight:400">${MONTH_NAMES[d.date.getMonth()].slice(0,3)} ${d.date.getDate()}</span></th>`).join("");
+  table.appendChild(hdrRow);
+
+  SLOT_HOURS.forEach(hour=>{
+    const tr=document.createElement("tr");
+    let cells=`<td class="grid-time-cell">${fmtHour(hour)}</td>`;
+    dates.forEach(({dateStr,dayShort})=>{
+      // Try date-keyed first, then day-keyed fallback
+      const dateKey=`${dateStr}-${hour}`;
+      const dayKey=`${dayShort}-${hour}`;
+      const ids=(schedule[dateKey]||schedule[dayKey]||[]);
+      let chips="";
+      ids.forEach(jobId=>{
+        const job=getJobById(jobId);
+        if(!job) return;
+        const col=SERVICE_COLORS[job.service]||{bg:"#0ea5e9",text:"#fff"};
+        const isJobber=job.fromJobber;
+        chips+=`<div class="job-chip" style="background:${col.bg};border:1px solid rgba(255,255,255,${isJobber?.3:.1})"
+          title="${job.name}${isJobber?" (Jobber)":""}"
+          ${!isJobber?`onclick="removeFromSchedule('${dateKey||dayKey}','${jobId}')"`:""}>
+          <div style="font-size:9px;font-weight:700;color:${col.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px">
+            ${isJobber?"🔒 ":""}${job.name}
+          </div>
+          <div style="font-size:8px;color:${col.text}aa">${job.estimatedHours}h · $${calcProfit(job).toFixed(0)}p</div>
+        </div>`;
+      });
+      cells+=`<td class="grid-slot">${chips}</td>`;
+    });
+    tr.innerHTML=cells;
+    table.appendChild(tr);
+  });
+}
+
+// ── SYNC JOBBER ───────────────────────────────────────────────────────────────
 async function syncJobber(){
-  const url=(document.getElementById("proxy-url-input")?.value||PROXY_URL).replace(/\/$/,"");
+  const url=getProxyUrl();
   const btn=document.getElementById("sync-btn");
   const pill=document.getElementById("sync-status-pill");
-  btn.disabled=true; btn.textContent="⟳ Syncing...";
-  pill.style.display="none";
+  btn.disabled=true; btn.textContent="⟳ Syncing..."; pill.style.display="none";
   try{
     const res=await fetch(`${url}/jobber/schedule`);
     if(!res.ok) throw new Error(`Server returned ${res.status}`);
@@ -748,115 +1049,68 @@ async function syncJobber(){
     jobs=jobs.filter(j=>!j.fromJobber);
     Object.keys(schedule).forEach(key=>{
       schedule[key]=(schedule[key]||[]).filter(id=>!getJobById(id)?.fromJobber);
-      if(schedule[key].length===0) delete schedule[key];
+      if(!schedule[key].length) delete schedule[key];
     });
     data.jobs.forEach(jj=>{
       jobs.push(jj);
-      if(jj.scheduledDay&&jj.scheduledHour!==null){
-        addToSchedule(jj.scheduledDay, jj.scheduledHour, jj.id);
+      if(jj.scheduledDate&&jj.scheduledHour!==null){
+        const key=`${jj.scheduledDate}-${jj.scheduledHour}`;
+        if(!schedule[key]) schedule[key]=[];
+        if(!schedule[key].includes(jj.id)) schedule[key].push(jj.id);
       }
     });
     pill.className="sync-status sync-ok";
     pill.textContent=`✓ Synced ${data.jobs.length} job${data.jobs.length!==1?"s":""}`;
     pill.style.display="inline-block";
     document.getElementById("last-sync-label").textContent=`Last sync: ${new Date().toLocaleTimeString()}`;
-    renderGrid(); renderDaySummary();
-    if(jobs.length>0) document.getElementById("empty-state").style.display="none";
+    renderMonthView();
   }catch(err){
-    pill.className="sync-status sync-err";
-    pill.textContent=`✗ ${err.message}`;
-    pill.style.display="inline-block";
+    pill.className="sync-status sync-err"; pill.textContent=`✗ ${err.message}`; pill.style.display="inline-block";
   }
   btn.disabled=false; btn.textContent="⟳ Sync Jobber";
   setTimeout(()=>pill.style.display="none",5000);
 }
 
-// ── GRID RENDER ───────────────────────────────────────────────────────────────
-function renderGrid(){
-  const g=document.getElementById("week-grid"); g.innerHTML="";
-  const hdr=document.createElement("div"); hdr.className="grid-header";
-  hdr.innerHTML=`<div style="padding:10px;border-right:1px solid #1a2035"></div>`+
-    SHORT_DAYS.map(d=>`<div class="grid-header-cell">${d}</div>`).join("");
-  g.appendChild(hdr);
-  SLOT_HOURS.forEach(hour=>{
-    const maxJobs=Math.max(1,...SHORT_DAYS.map(day=>{
-      const key=`${day}-${hour}`;
-      return (schedule[key]||[]).length;
-    }));
-    const row=document.createElement("div"); row.className="grid-row";
-    row.style.minHeight=`${Math.max(40, maxJobs*38)}px`;
-    row.innerHTML=`<div class="time-cell"><span style="font-size:10px;color:#334155;font-weight:600">${fmtHour(hour)}</span></div>`;
-    SHORT_DAYS.forEach(day=>{
-      const key=`${day}-${hour}`;
-      const ids=schedule[key]||[];
-      const cell=document.createElement("div"); cell.className="slot-cell";
-      const chips=document.createElement("div"); chips.className="chips";
-      ids.forEach(jobId=>{
-        const job=getJobById(jobId);
-        if(!job) return;
-        const color=SERVICE_COLORS[job.service]||{bg:"#0ea5e9",text:"#fff"};
-        const isJobber=job.fromJobber;
-        const chip=document.createElement("div");
-        chip.className="job-chip";
-        chip.style.cssText=`background:${color.bg};${isJobber?"border:1.5px solid rgba(255,255,255,.35)":"border:1.5px solid rgba(255,255,255,.1)"}`;
-        chip.title=isJobber?`${job.name} (Jobber — locked)`:`${job.name} — click to remove`;
-        chip.innerHTML=`
-          <div style="display:flex;align-items:center;gap:4px">
-            ${isJobber?`<span style="font-size:8px;opacity:.7">🔒</span>`:""}
-            <span style="font-size:10px;font-weight:700;color:${color.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px">${job.name}</span>
-          </div>
-          <div style="font-size:9px;color:${color.text}aa;margin-top:1px">${job.estimatedHours}h · $${calcProfit(job).toFixed(0)}p</div>`;
-        if(!isJobber) chip.onclick=()=>removeFromSchedule(key, jobId);
-        chips.appendChild(chip);
-      });
-      cell.appendChild(chips);
-      row.appendChild(cell);
-    });
-    g.appendChild(row);
-  });
-  if(jobs.length>0) document.getElementById("empty-state").style.display="none";
-}
-
-function renderDaySummary(){
-  const c=document.getElementById("day-summary"); c.innerHTML="";
-  SHORT_DAYS.forEach(day=>{
-    const dayJobs=getAllJobsForDay(day);
-    const profit=dayJobs.reduce((s,{job})=>s+calcProfit(job),0);
-    const jbCount=dayJobs.filter(x=>x.job.fromJobber).length;
-    const d=document.createElement("div"); d.className="day-card";
-    d.innerHTML=`<div style="font-size:10px;color:#475569;font-weight:700;letter-spacing:1px;margin-bottom:3px">${day}</div>
-      <div style="font-size:15px;font-weight:700;color:${profit>0?"#4ade80":"#334155"}">$${profit.toFixed(0)}</div>
-      <div style="font-size:9px;color:#475569">${dayJobs.length} job${dayJobs.length!==1?"s":""}${jbCount>0?` (${jbCount} Jobber)`:""}</div>`;
-    c.appendChild(d);
-  });
+// ── RESET FORM ────────────────────────────────────────────────────────────────
+function resetForm(){
+  document.getElementById("job-name").value="";
+  document.getElementById("job-address").value="";
+  document.getElementById("job-base-override").value="";
+  document.getElementById("quote-number-input").value="";
+  document.getElementById("quote-status").textContent="";
+  document.getElementById("hours-calc-hint").style.display="none";
+  document.getElementById("miles-calc-hint").style.display="none";
+  autoCalculateMiles._lastKey="";
+  calculatedHours=null;
+  lineItems=[{desc:"",cost:0}]; renderLineItems();
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
-// Restore saved slider/param values into UI
-(function restoreParamUI(){
-  const map = {labor:"p-labor",crew:"p-crew",fuel:"p-fuel",start:"p-start",end:"p-end"};
-  const labels = {
-    labor: v=>`$${v}`, crew: v=>v,
-    fuel: v=>`$${parseFloat(v).toFixed(2)}`,
-    start: v=>fmtHour(parseInt(v)), end: v=>fmtHour(parseInt(v))
-  };
-  Object.entries(map).forEach(([k,id])=>{
-    const el=document.getElementById(id);
-    if(el){ el.value=PARAMS[k]; document.getElementById("lbl-"+k).textContent=labels[k](PARAMS[k]); }
+function initApp(){
+  // Restore sliders
+  const sliderMap={labor:"p-labor",crew:"p-crew",totalcrews:"p-totalcrews",fuel:"p-fuel",start:"p-start",end:"p-end"};
+  const labelFmt={labor:v=>`$${v}`,crew:v=>v,totalcrews:v=>v,fuel:v=>`$${parseFloat(v).toFixed(2)}`,start:v=>fmtHour(parseInt(v)),end:v=>fmtHour(parseInt(v))};
+  Object.entries(sliderMap).forEach(([k,id])=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.value=PARAMS[k];
+    const lbl=document.getElementById("lbl-"+k); if(lbl) lbl.textContent=labelFmt[k](PARAMS[k]);
   });
-  const ba=document.getElementById("p-base-address");
-  if(ba && PARAMS.baseAddress) ba.value=PARAMS.baseAddress;
-  const pu=document.getElementById("proxy-url-input");
-  if(pu && PARAMS.proxyUrl) pu.value=PARAMS.proxyUrl;
-})();
+  const ba=document.getElementById("p-base-address"); if(ba&&PARAMS.baseAddress) ba.value=PARAMS.baseAddress;
+  const pu=document.getElementById("proxy-url-input"); if(pu&&PARAMS.proxyUrl) pu.value=PARAMS.proxyUrl;
 
-renderLineItems(); renderGrid(); renderDaySummary(); renderJobTypeRates();
-updateProfitPreview(); // run after restoreParamUI so saved labor/crew rates are applied
-document.getElementById("job-hours").addEventListener("input", updateProfitPreview);
-document.getElementById("job-miles").addEventListener("input", updateProfitPreview);
-document.getElementById("p-base-address").addEventListener("input", e => updateParam("baseAddress", e.target.value));
-// Also save proxy URL changes
-document.getElementById("proxy-url-input").addEventListener("change", e=>{ PARAMS.proxyUrl=e.target.value; saveParams(); });
+  renderLineItems();
+  renderJobTypeRates();
+  renderTechList();
+  renderMonthView();
+  updateProfitPreview();
+
+  document.getElementById("job-hours").addEventListener("input",updateProfitPreview);
+  document.getElementById("job-miles").addEventListener("input",updateProfitPreview);
+  document.getElementById("p-base-address").addEventListener("input",e=>updateParam("baseAddress",e.target.value));
+  document.getElementById("proxy-url-input").addEventListener("change",e=>updateParam("proxyUrl",e.target.value));
+}
+
+initApp();
 </script>
 </body>
 </html>
