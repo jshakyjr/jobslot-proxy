@@ -1,6 +1,5 @@
-// JobSlot AI — Jobber Proxy Server v14
-// OAuth2 + persistent tokens + AI scheduling + quote lookup + distance
-// Token management: refresh lock, backoff, change-only saves to prevent race conditions
+// JobSlot AI — Jobber Proxy Server v15
+// 3-month sync | batch quotes | safe token merge | quota-conscious queries
 
 const express = require("express");
 const path = require("path");
@@ -16,21 +15,14 @@ const JOBBER_TOKEN_URL     = "https://api.getjobber.com/api/oauth/token";
 const JOBBER_AUTH_URL      = "https://api.getjobber.com/api/oauth/authorize";
 const JOBBER_API_VERSION   = "2025-04-16";
 
-// Token store — loaded from env vars on cold start, kept in memory
 let tokenStore = {
   accessToken:  process.env.JOBBER_ACCESS_TOKEN  || null,
   refreshToken: process.env.JOBBER_REFRESH_TOKEN || null,
-  // On cold start we don't know when the token expires, so set expiresAt=0
-  // to trigger one refresh, then cache the result for the full token lifetime
   expiresAt: 0,
 };
-
-// Refresh lock — prevents multiple concurrent requests all triggering a refresh
 let refreshPromise = null;
-
-// Backoff state — after a failed refresh, wait before retrying
 let lastRefreshFailAt = 0;
-const REFRESH_BACKOFF_MS = 60 * 1000; // 1 minute cooldown after failure
+const REFRESH_BACKOFF_MS = 60 * 1000;
 
 async function saveTokensToRender(tokens) {
   if (!RENDER_API_KEY || !RENDER_SERVICE_ID) return;
@@ -40,7 +32,6 @@ async function saveTokensToRender(tokens) {
     return;
   }
   try {
-    // GET current vars first, merge only the token keys, PUT back — avoids blanking other vars
     const getRes = await fetch(`https://api.render.com/v1/services/${RENDER_SERVICE_ID}/env-vars`, {
       headers: { "Authorization": `Bearer ${RENDER_API_KEY}`, "Accept": "application/json" },
     });
@@ -67,19 +58,13 @@ async function saveTokensToRender(tokens) {
   } catch(e) { console.log("Render save error:", e.message); }
 }
 
-
 async function _doRefresh() {
   if (!tokenStore.refreshToken) throw new Error("NO_REFRESH_TOKEN");
   console.log("Refreshing access token...");
   const res = await fetch(JOBBER_TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "refresh_token",
-      client_id: JOBBER_CLIENT_ID,
-      client_secret: JOBBER_CLIENT_SECRET,
-      refresh_token: tokenStore.refreshToken,
-    }),
+    body: new URLSearchParams({ grant_type: "refresh_token", client_id: JOBBER_CLIENT_ID, client_secret: JOBBER_CLIENT_SECRET, refresh_token: tokenStore.refreshToken }),
   });
   if (!res.ok) {
     const txt = await res.text();
@@ -89,21 +74,15 @@ async function _doRefresh() {
   const data = await res.json();
   tokenStore.accessToken  = data.access_token;
   tokenStore.refreshToken = data.refresh_token || tokenStore.refreshToken;
-  // Use full token lifetime — don't refresh early unless truly needed
   tokenStore.expiresAt    = Date.now() + (data.expires_in || 3600) * 1000;
-  lastRefreshFailAt = 0; // reset backoff on success
+  lastRefreshFailAt = 0;
   await saveTokensToRender(tokenStore);
   console.log(`Token refreshed. Valid for ${Math.round((tokenStore.expiresAt - Date.now()) / 60000)} min.`);
   return tokenStore.accessToken;
 }
 
 async function refreshAccessToken() {
-  // If a refresh is already in flight, wait for it instead of firing another
-  if (refreshPromise) {
-    console.log("Refresh already in progress — waiting...");
-    return refreshPromise;
-  }
-  // Backoff: don't retry within 1 minute of a failure
+  if (refreshPromise) { console.log("Refresh in progress — waiting..."); return refreshPromise; }
   if (lastRefreshFailAt && Date.now() - lastRefreshFailAt < REFRESH_BACKOFF_MS) {
     const waitSec = Math.ceil((REFRESH_BACKOFF_MS - (Date.now() - lastRefreshFailAt)) / 1000);
     throw new Error(`Token refresh on cooldown — try again in ${waitSec}s`);
@@ -113,25 +92,16 @@ async function refreshAccessToken() {
 }
 
 async function getValidToken() {
-  // Token is valid and not expiring soon (5 min buffer) — return immediately, no API call
-  if (tokenStore.accessToken && Date.now() < tokenStore.expiresAt - 300000) {
-    return tokenStore.accessToken;
-  }
+  if (tokenStore.accessToken && Date.now() < tokenStore.expiresAt - 300000) return tokenStore.accessToken;
   if (tokenStore.refreshToken) return await refreshAccessToken();
   throw new Error("NO_REFRESH_TOKEN");
 }
 
-function getWeekRange(date) {
-  const d = new Date(date);
-  const day = d.getUTCDay();
-  const diffToMon = (day === 0 ? -6 : 1 - day);
-  const mon = new Date(d);
-  mon.setUTCDate(d.getUTCDate() + diffToMon);
-  mon.setUTCHours(0, 0, 0, 0);
-  const fri = new Date(mon);
-  fri.setUTCDate(mon.getUTCDate() + 4);
-  fri.setUTCHours(23, 59, 59, 999);
-  return { gte: mon.toISOString(), lte: fri.toISOString() };
+function get3MonthRange() {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+  const end   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 3, 0, 23, 59, 59, 999));
+  return { gte: start.toISOString(), lte: end.toISOString() };
 }
 
 app.use((req, res, next) => {
@@ -144,8 +114,8 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  const { gte, lte } = getWeekRange(new Date());
-  res.json({ status: "JobSlot AI Proxy v14", timestamp: new Date().toISOString(), currentWeek: { gte, lte }, connected: !!tokenStore.refreshToken });
+  const { gte, lte } = get3MonthRange();
+  res.json({ status: "JobSlot AI Proxy v15", timestamp: new Date().toISOString(), range: { gte, lte }, connected: !!tokenStore.refreshToken });
 });
 
 app.get("/connect", (req, res) => {
@@ -160,10 +130,8 @@ app.get("/connect", (req, res) => {
   <body><div class="box"><h1>⚡ JobSlot AI</h1>
   <p>Connect your Jobber account once and your schedule syncs automatically forever.</p>
   ${connected
-    ? `<div class="connected">✅ Jobber is connected!<br><small style="opacity:.7">Tokens refresh automatically.</small></div>
-       <a href="/app" class="btn">Open Scheduler →</a>
-       <div class="reconnect"><a href="/auth">Reconnect Jobber</a></div>`
-    : `<a href="/auth" class="btn">Connect to Jobber →</a>`}
+    ? '<div class="connected">✅ Jobber is connected!<br><small style="opacity:.7">Tokens refresh automatically.</small></div><a href="/app" class="btn">Open Scheduler →</a><div class="reconnect"><a href="/auth">Reconnect Jobber</a></div>'
+    : '<a href="/auth" class="btn">Connect to Jobber →</a>'}
   </div></body></html>`);
 });
 
@@ -197,35 +165,21 @@ app.get("/auth/callback", async (req, res) => {
 
 app.get("/app", (req, res) => { res.sendFile(path.join(__dirname, "app.html")); });
 
-// ─── DISTANCE MATRIX ──────────────────────────────────────────────────────────
 app.get("/distance", async (req, res) => {
   const MAPS_KEY = process.env.GOOGLE_MAPS_API_KEY;
   if (!MAPS_KEY) return res.status(500).json({ error: "GOOGLE_MAPS_API_KEY not configured." });
-
   const { origin, destination } = req.query;
   if (!origin || !destination) return res.status(400).json({ error: "Missing origin or destination." });
-
   try {
     const url = `https://maps.googleapis.com/maps/api/distancematrix/json?` +
       new URLSearchParams({ origins: origin, destinations: destination, units: "imperial", key: MAPS_KEY });
-
     const gmRes = await fetch(url);
     if (!gmRes.ok) throw new Error(`Google Maps API ${gmRes.status}`);
-
     const data = await gmRes.json();
-    console.log("Distance Matrix response:", JSON.stringify(data).slice(0, 300));
-
     if (data.status !== "OK") throw new Error(`Maps API status: ${data.status}`);
-
     const element = data.rows?.[0]?.elements?.[0];
-    if (!element || element.status !== "OK") {
-      throw new Error(`No route found: ${element?.status || "unknown"}`);
-    }
-
-    // distance.value is in meters — convert to miles
-    const meters = element.distance.value;
-    const miles = Math.round((meters / 1609.34) * 10) / 10;
-
+    if (!element || element.status !== "OK") throw new Error(`No route found: ${element?.status || "unknown"}`);
+    const miles = Math.round((element.distance.value / 1609.34) * 10) / 10;
     res.json({ success: true, miles, text: element.distance.text, duration: element.duration.text });
   } catch(err) {
     console.error("Distance error:", err.message);
@@ -233,123 +187,130 @@ app.get("/distance", async (req, res) => {
   }
 });
 
-// ─── QUOTE LOOKUP ─────────────────────────────────────────────────────────────
-app.get("/quote/:id", async (req, res) => {
-  try {
-    const token = await getValidToken();
-    const quoteNumber = req.params.id;
-    console.log(`Looking up quote: ${quoteNumber}`);
-
-    // Jobber requires quoteNumber as IntRangeInput: { min: N, max: N }
-    const qNum = parseInt(quoteNumber);
-    // Keep query minimal — Jobber charges per field, lineItems are expensive
-    const searchQuery = `{
-      quotes(filter: { quoteNumber: { min: ${qNum}, max: ${qNum} } }) {
-        nodes {
-          id
-          quoteNumber
-          title
-          amounts { total }
-          client { name companyName }
-          property { address { street city province postalCode } }
-          lineItems(first: 20) {
-            nodes { name unitPrice quantity totalPrice }
-          }
-        }
+async function fetchQuote(token, quoteNumber) {
+  const qNum = parseInt(quoteNumber);
+  if (!qNum) throw new Error(`Invalid quote number: ${quoteNumber}`);
+  const query = `{
+    quotes(filter: { quoteNumber: { min: ${qNum}, max: ${qNum} } }) {
+      nodes {
+        id quoteNumber title
+        amounts { total }
+        client { name companyName }
+        property { address { street city province postalCode } }
+        lineItems(first: 15) { nodes { name unitPrice quantity totalPrice } }
       }
-    }`;
-
-    const jobberRes = await fetch(JOBBER_API_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json",
-        "X-JOBBER-GRAPHQL-VERSION": JOBBER_API_VERSION
-      },
-      body: JSON.stringify({ query: searchQuery }),
-    });
-
-    if (!jobberRes.ok) {
-      const t = await jobberRes.text();
-      throw new Error(`Jobber API ${jobberRes.status}: ${t.slice(0,200)}`);
     }
-
-    const raw = await jobberRes.json();
-    console.log("Quote raw response:", JSON.stringify(raw).slice(0, 500));
-
-    if (raw.errors) {
-      const msg = raw.errors[0]?.message || "Unknown GraphQL error";
-      console.error("Full GraphQL errors:", JSON.stringify(raw.errors));
-      throw new Error(`Jobber GraphQL: ${msg}`);
-    }
-
-    const nodes = raw?.data?.quotes?.nodes || [];
-    if (nodes.length === 0) {
-      return res.status(404).json({ error: `Quote #${quoteNumber} not found in Jobber.` });
-    }
-
-    const q = nodes[0];
-    const addr = q.property?.address;
-    const addressStr = addr
-      ? [addr.street, addr.city, addr.province, addr.postalCode].filter(Boolean).join(", ")
-      : "";
-
-    const lineItems = (q.lineItems?.nodes || []).map(li => ({
+  }`;
+  const res = await fetch(JOBBER_API_URL, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "X-JOBBER-GRAPHQL-VERSION": JOBBER_API_VERSION },
+    body: JSON.stringify({ query }),
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`Jobber API ${res.status}: ${t.slice(0,200)}`); }
+  const raw = await res.json();
+  if (raw.errors) {
+    const msg = raw.errors[0]?.message || "GraphQL error";
+    console.error("Quote GraphQL errors:", JSON.stringify(raw.errors));
+    throw new Error(`Jobber GraphQL: ${msg}`);
+  }
+  const nodes = raw?.data?.quotes?.nodes || [];
+  if (!nodes.length) throw new Error(`Quote #${quoteNumber} not found`);
+  const q = nodes[0];
+  const addr = q.property?.address;
+  return {
+    id: q.id,
+    quoteNumber: q.quoteNumber,
+    title: q.title || "",
+    clientName: q.client?.companyName || q.client?.name || "",
+    address: addr ? [addr.street, addr.city, addr.province, addr.postalCode].filter(Boolean).join(", ") : "",
+    total: parseFloat(q.amounts?.total || 0),
+    lineItems: (q.lineItems?.nodes || []).map(li => ({
       desc: li.name || "",
       cost: parseFloat(li.totalPrice || 0),
       unitPrice: parseFloat(li.unitPrice || 0),
       quantity: parseFloat(li.quantity || 1),
-    }));
+    })),
+  };
+}
 
-    const clientName = q.client?.companyName || q.client?.name || "";
-    const total = parseFloat(q.amounts?.total || 0);
-
-    res.json({
-      success: true,
-      quote: {
-        id: q.id,
-        quoteNumber: q.quoteNumber,
-        title: q.title || "",
-        message: q.message || "",
-        clientName,
-        address: addressStr,
-        total,
-        lineItems,
-      }
-    });
-
+app.get("/quote/:id", async (req, res) => {
+  try {
+    const token = await getValidToken();
+    console.log(`Quote lookup: ${req.params.id}`);
+    const quote = await fetchQuote(token, req.params.id);
+    res.json({ success: true, quote });
   } catch(err) {
     console.error("Quote lookup error:", err.message);
-    if (err.message === "NO_REFRESH_TOKEN") {
-      return res.status(401).json({ error: "NOT_CONNECTED", message: "Visit /connect to authorize." });
-    }
+    if (err.message === "NO_REFRESH_TOKEN") return res.status(401).json({ error: "NOT_CONNECTED" });
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── JOBBER SCHEDULE SYNC ─────────────────────────────────────────────────────
+app.post("/quotes/batch", async (req, res) => {
+  const { quoteNumbers } = req.body;
+  if (!Array.isArray(quoteNumbers) || !quoteNumbers.length)
+    return res.status(400).json({ error: "Missing quoteNumbers array" });
+  if (quoteNumbers.length > 10)
+    return res.status(400).json({ error: "Max 10 quotes per batch" });
+  try {
+    const token = await getValidToken();
+    const results = [], errors = [];
+    for (let i = 0; i < quoteNumbers.length; i++) {
+      try {
+        const quote = await fetchQuote(token, quoteNumbers[i].toString().trim());
+        results.push({ quoteNumber: quoteNumbers[i], success: true, quote });
+      } catch(e) {
+        errors.push({ quoteNumber: quoteNumbers[i], error: e.message });
+      }
+      if (i < quoteNumbers.length - 1) await new Promise(r => setTimeout(r, 350));
+    }
+    console.log(`Batch: ${results.length} ok, ${errors.length} failed`);
+    res.json({ success: true, results, errors });
+  } catch(err) {
+    console.error("Batch quote error:", err.message);
+    if (err.message === "NO_REFRESH_TOKEN") return res.status(401).json({ error: "NOT_CONNECTED" });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/jobber/schedule", async (req, res) => {
   try {
     const token = await getValidToken();
-    const targetDate = req.query.week ? new Date(req.query.week) : new Date();
-    const { gte, lte } = getWeekRange(targetDate);
-    console.log(`Syncing Jobber: ${gte} → ${lte}`);
-    const query = `{ visits(filter: { startAt: { after: "${gte}", before: "${lte}" } }) { nodes { id title startAt duration client { name } job { total } } } }`;
-    const jobberRes = await fetch(JOBBER_API_URL, {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "X-JOBBER-GRAPHQL-VERSION": JOBBER_API_VERSION },
-      body: JSON.stringify({ query }),
-    });
-    if (!jobberRes.ok) { const t = await jobberRes.text(); throw new Error(`Jobber API ${jobberRes.status}: ${t.slice(0,200)}`); }
-    const raw = await jobberRes.json();
-    if (raw.errors) {
-      const msg = raw.errors[0]?.message || "Unknown error";
-      if (msg.toLowerCase().includes("throttl")) return res.status(429).json({ error: "Rate limit — wait 2 minutes." });
-      throw new Error(`Jobber GraphQL: ${msg}`);
+    const { gte, lte } = get3MonthRange();
+    console.log(`Syncing Jobber 3 months: ${gte} to ${lte}`);
+    const now = new Date();
+    const mid = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
+
+    async function fetchChunk(after, before) {
+      const query = `{ visits(filter: { startAt: { after: "${after}", before: "${before}" } }) { nodes { id title startAt duration client { name } job { total } } } }`;
+      const r = await fetch(JOBBER_API_URL, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "X-JOBBER-GRAPHQL-VERSION": JOBBER_API_VERSION },
+        body: JSON.stringify({ query }),
+      });
+      if (!r.ok) { const t = await r.text(); throw new Error(`Jobber API ${r.status}: ${t.slice(0,200)}`); }
+      const raw = await r.json();
+      if (raw.errors) {
+        const msg = raw.errors[0]?.message || "Unknown";
+        if (msg.toLowerCase().includes("throttl")) throw new Error("THROTTLED");
+        throw new Error(`Jobber GraphQL: ${msg}`);
+      }
+      return raw?.data?.visits?.nodes || [];
     }
-    const jobs = normalizeJobberResponse(raw?.data?.visits?.nodes || []);
+
+    let nodes = [];
+    try {
+      nodes = nodes.concat(await fetchChunk(gte, mid));
+      await new Promise(r => setTimeout(r, 300));
+      nodes = nodes.concat(await fetchChunk(mid, lte));
+    } catch(e) {
+      if (e.message === "THROTTLED") return res.status(429).json({ error: "Rate limit — wait 2 minutes." });
+      throw e;
+    }
+
+    const jobs = normalizeJobberResponse(nodes);
     console.log(`Returning ${jobs.length} jobs`);
-    res.json({ success: true, weekStart: gte, weekEnd: lte, count: jobs.length, jobs });
+    res.json({ success: true, rangeStart: gte, rangeEnd: lte, count: jobs.length, jobs });
   } catch(err) {
     console.error("Sync error:", err.message);
     if (err.message === "NO_REFRESH_TOKEN") return res.status(401).json({ error: "NOT_CONNECTED", message: "Visit /connect to authorize." });
@@ -357,7 +318,6 @@ app.get("/jobber/schedule", async (req, res) => {
   }
 });
 
-// ─── AI SCHEDULING ────────────────────────────────────────────────────────────
 app.post("/ai/schedule", async (req, res) => {
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_KEY) return res.status(500).json({ error: "ANTHROPIC_API_KEY not configured." });
@@ -367,7 +327,7 @@ app.post("/ai/schedule", async (req, res) => {
     const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+      body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
     });
     const data = await aiRes.json();
     res.json(data);
@@ -377,7 +337,6 @@ app.post("/ai/schedule", async (req, res) => {
   }
 });
 
-// ─── NORMALIZE JOBBER VISITS ──────────────────────────────────────────────────
 function normalizeJobberResponse(nodes) {
   const DAY_MAP = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
   function getEasternOffset(date) {
@@ -398,8 +357,15 @@ function normalizeJobberResponse(nodes) {
     const estHours  = item.duration ? Math.round((item.duration / 60) * 2) / 2 : 2;
     const revenue   = parseFloat(item.job?.total || 0);
     const name      = item.client?.name || item.title?.split(" - ")[0] || "Jobber Job";
-    return { id: item.id, name, service: "Jobber Job", address: "", revenue, estimatedHours: estHours, distanceMiles: 0, preferredDay: "", preferredTime: "", lineItems: [], scheduledDay: dayShort, scheduledHour: startHour, fromJobber: true };
+    return {
+      id: item.id, name, service: "Jobber Job", address: "",
+      revenue, estimatedHours: estHours, distanceMiles: 0,
+      preferredDay: "", preferredTime: "", lineItems: [],
+      scheduledDay: dayShort, scheduledHour: startHour,
+      scheduledDate: localDate.toISOString().split("T")[0],
+      fromJobber: true,
+    };
   }).filter(j => j && j.scheduledDay && j.scheduledHour !== null);
 }
 
-app.listen(PORT, () => console.log(`JobSlot AI Proxy v12 on port ${PORT}`));
+app.listen(PORT, () => console.log(`JobSlot AI Proxy v15 on port ${PORT}`));
