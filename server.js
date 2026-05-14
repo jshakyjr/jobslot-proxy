@@ -397,4 +397,4 @@ function normalizeJobberResponse(nodes) {
   }).filter(j => j && j.scheduledDay && j.scheduledHour !== null);
 }
 
-app.listen(PORT, () => console.log(`JobSlot AI Proxy v12 on port ${PORT}`));
+app.listen(PORT, () => console.log(`JobSlot AI Proxy v14 on port ${PORT}`));
