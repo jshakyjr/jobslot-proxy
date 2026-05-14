@@ -504,6 +504,9 @@ async function lookupQuote(){
     // Populate form fields
     document.getElementById("job-name").value = q.clientName || q.title || "";
     document.getElementById("job-address").value = q.address || "";
+    // Trigger miles calculation now that address is populated
+    autoCalculateMiles._lastKey = ""; // clear cache so it recalculates
+    autoCalculateMiles();
 
     // Populate line items
     if(q.lineItems && q.lineItems.length > 0){
@@ -542,8 +545,8 @@ function updateHoursHint(){
 
   if(rev > 0 && rate > 0){
     const crew = PARAMS.crew || 1;
-    calculatedHours = Math.round((rev / (rate * crew)) * 2) / 2; // round to nearest 0.5
-    calculatedHours = Math.max(0.5, calculatedHours);
+    calculatedHours = Math.ceil((rev / (rate * crew)) * 4) / 4; // round UP to nearest 0.25hr (15 min)
+    calculatedHours = Math.max(0.25, calculatedHours);
     hint.style.display = "block";
     hint.textContent = `→ Calculated: ${calculatedHours}h at $${rate}/man hr · Click to apply`;
   } else {
@@ -848,6 +851,7 @@ function renderDaySummary(){
 })();
 
 renderLineItems(); renderGrid(); renderDaySummary(); renderJobTypeRates();
+updateProfitPreview(); // run after restoreParamUI so saved labor/crew rates are applied
 document.getElementById("job-hours").addEventListener("input", updateProfitPreview);
 document.getElementById("job-miles").addEventListener("input", updateProfitPreview);
 document.getElementById("p-base-address").addEventListener("input", e => updateParam("baseAddress", e.target.value));
