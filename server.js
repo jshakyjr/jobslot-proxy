@@ -1,5 +1,5 @@
-// JobSlot AI — Jobber Proxy Server v11
-// OAuth2 + persistent tokens + AI scheduling endpoint
+// JobSlot AI — Jobber Proxy Server v13
+// OAuth2 + persistent tokens + AI scheduling + quote lookup
 
 const express = require("express");
 const path = require("path");
@@ -89,7 +89,7 @@ app.use(express.json());
 
 app.get("/", (req, res) => {
   const { gte, lte } = getWeekRange(new Date());
-  res.json({ status: "JobSlot AI Proxy v11", timestamp: new Date().toISOString(), currentWeek: { gte, lte }, connected: !!tokenStore.refreshToken });
+  res.json({ status: "JobSlot AI Proxy v12", timestamp: new Date().toISOString(), currentWeek: { gte, lte }, connected: !!tokenStore.refreshToken });
 });
 
 app.get("/connect", (req, res) => {
@@ -140,6 +140,150 @@ app.get("/auth/callback", async (req, res) => {
 
 app.get("/app", (req, res) => { res.sendFile(path.join(__dirname, "app.html")); });
 
+// ─── DISTANCE MATRIX ──────────────────────────────────────────────────────────
+app.get("/distance", async (req, res) => {
+  const MAPS_KEY = process.env.GOOGLE_MAPS_API_KEY;
+  if (!MAPS_KEY) return res.status(500).json({ error: "GOOGLE_MAPS_API_KEY not configured." });
+
+  const { origin, destination } = req.query;
+  if (!origin || !destination) return res.status(400).json({ error: "Missing origin or destination." });
+
+  try {
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?` +
+      new URLSearchParams({ origins: origin, destinations: destination, units: "imperial", key: MAPS_KEY });
+
+    const gmRes = await fetch(url);
+    if (!gmRes.ok) throw new Error(`Google Maps API ${gmRes.status}`);
+
+    const data = await gmRes.json();
+    console.log("Distance Matrix response:", JSON.stringify(data).slice(0, 300));
+
+    if (data.status !== "OK") throw new Error(`Maps API status: ${data.status}`);
+
+    const element = data.rows?.[0]?.elements?.[0];
+    if (!element || element.status !== "OK") {
+      throw new Error(`No route found: ${element?.status || "unknown"}`);
+    }
+
+    // distance.value is in meters — convert to miles
+    const meters = element.distance.value;
+    const miles = Math.round((meters / 1609.34) * 10) / 10;
+
+    res.json({ success: true, miles, text: element.distance.text, duration: element.duration.text });
+  } catch(err) {
+    console.error("Distance error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── QUOTE LOOKUP ─────────────────────────────────────────────────────────────
+app.get("/quote/:id", async (req, res) => {
+  try {
+    const token = await getValidToken();
+    const quoteId = req.params.id;
+    console.log(`Looking up quote: ${quoteId}`);
+
+    // Jobber quote IDs in GraphQL need to be the global ID format
+    // Try fetching by quote number first (searching quotes)
+    const searchQuery = `{
+      quotes(filter: { quoteNumber: ${parseInt(quoteId) || 0} }) {
+        nodes {
+          id
+          quoteNumber
+          title
+          message
+          amounts { total depositAmount }
+          client { name companyName defaultEmails { description } }
+          property {
+            address {
+              street
+              city
+              province
+              postalCode
+              country
+            }
+          }
+          lineItems {
+            nodes {
+              name
+              description
+              quantity
+              unitPrice
+              totalPrice
+            }
+          }
+        }
+      }
+    }`;
+
+    const jobberRes = await fetch(JOBBER_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "X-JOBBER-GRAPHQL-VERSION": JOBBER_API_VERSION
+      },
+      body: JSON.stringify({ query: searchQuery }),
+    });
+
+    if (!jobberRes.ok) {
+      const t = await jobberRes.text();
+      throw new Error(`Jobber API ${jobberRes.status}: ${t.slice(0,200)}`);
+    }
+
+    const raw = await jobberRes.json();
+    console.log("Quote raw response:", JSON.stringify(raw).slice(0, 500));
+
+    if (raw.errors) {
+      const msg = raw.errors[0]?.message || "Unknown GraphQL error";
+      throw new Error(`Jobber GraphQL: ${msg}`);
+    }
+
+    const nodes = raw?.data?.quotes?.nodes || [];
+    if (nodes.length === 0) {
+      return res.status(404).json({ error: `Quote #${quoteId} not found in Jobber.` });
+    }
+
+    const q = nodes[0];
+    const addr = q.property?.address;
+    const addressStr = addr
+      ? [addr.street, addr.city, addr.province, addr.postalCode].filter(Boolean).join(", ")
+      : "";
+
+    const lineItems = (q.lineItems?.nodes || []).map(li => ({
+      desc: li.name || li.description || "",
+      cost: parseFloat(li.totalPrice || 0),
+      unitPrice: parseFloat(li.unitPrice || 0),
+      quantity: parseFloat(li.quantity || 1),
+    }));
+
+    const clientName = q.client?.companyName || q.client?.name || "";
+    const total = parseFloat(q.amounts?.total || 0);
+
+    res.json({
+      success: true,
+      quote: {
+        id: q.id,
+        quoteNumber: q.quoteNumber,
+        title: q.title || "",
+        message: q.message || "",
+        clientName,
+        address: addressStr,
+        total,
+        lineItems,
+      }
+    });
+
+  } catch(err) {
+    console.error("Quote lookup error:", err.message);
+    if (err.message === "NO_REFRESH_TOKEN") {
+      return res.status(401).json({ error: "NOT_CONNECTED", message: "Visit /connect to authorize." });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── JOBBER SCHEDULE SYNC ─────────────────────────────────────────────────────
 app.get("/jobber/schedule", async (req, res) => {
   try {
     const token = await getValidToken();
@@ -169,6 +313,7 @@ app.get("/jobber/schedule", async (req, res) => {
   }
 });
 
+// ─── AI SCHEDULING ────────────────────────────────────────────────────────────
 app.post("/ai/schedule", async (req, res) => {
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_KEY) return res.status(500).json({ error: "ANTHROPIC_API_KEY not configured." });
@@ -182,9 +327,13 @@ app.post("/ai/schedule", async (req, res) => {
     });
     const data = await aiRes.json();
     res.json(data);
-  } catch(err) { res.status(500).json({ error: err.message }); }
+  } catch(err) {
+    console.error("AI error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
+// ─── NORMALIZE JOBBER VISITS ──────────────────────────────────────────────────
 function normalizeJobberResponse(nodes) {
   const DAY_MAP = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
   function getEasternOffset(date) {
@@ -209,4 +358,4 @@ function normalizeJobberResponse(nodes) {
   }).filter(j => j && j.scheduledDay && j.scheduledHour !== null);
 }
 
-app.listen(PORT, () => console.log(`JobSlot AI Proxy v11 on port ${PORT}`));
+app.listen(PORT, () => console.log(`JobSlot AI Proxy v12 on port ${PORT}`));
