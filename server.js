@@ -1,6 +1,6 @@
 // JobSlot AI — Jobber Proxy Server v14
-// OAuth2 + persistent tokens + AI scheduling + quote lookup
-// Token management: refresh lock, backoff, minimal API quota usage
+// OAuth2 + persistent tokens + AI scheduling + quote lookup + distance
+// Token management: refresh lock, backoff, change-only saves to prevent race conditions
 
 const express = require("express");
 const path = require("path");
@@ -34,6 +34,13 @@ const REFRESH_BACKOFF_MS = 60 * 1000; // 1 minute cooldown after failure
 
 async function saveTokensToRender(tokens) {
   if (!RENDER_API_KEY || !RENDER_SERVICE_ID) return;
+  // Only save if tokens actually changed from what's in env vars
+  // This prevents a dying instance from overwriting a freshly saved token
+  if (tokens.accessToken === process.env.JOBBER_ACCESS_TOKEN &&
+      tokens.refreshToken === process.env.JOBBER_REFRESH_TOKEN) {
+    console.log("Tokens unchanged — skipping Render save.");
+    return;
+  }
   try {
     await fetch(`https://api.render.com/v1/services/${RENDER_SERVICE_ID}/env-vars`, {
       method: "PUT",
@@ -49,7 +56,10 @@ async function saveTokensToRender(tokens) {
         { key: "GOOGLE_MAPS_API_KEY",  value: process.env.GOOGLE_MAPS_API_KEY || "" },
       ]),
     });
-    console.log("Tokens saved to Render.");
+    // Update process.env so future comparisons are accurate
+    process.env.JOBBER_ACCESS_TOKEN  = tokens.accessToken;
+    process.env.JOBBER_REFRESH_TOKEN = tokens.refreshToken;
+    console.log("Tokens changed — saved to Render.");
   } catch(e) { console.log("Render save error:", e.message); }
 }
 
@@ -130,7 +140,7 @@ app.use(express.json());
 
 app.get("/", (req, res) => {
   const { gte, lte } = getWeekRange(new Date());
-  res.json({ status: "JobSlot AI Proxy v12", timestamp: new Date().toISOString(), currentWeek: { gte, lte }, connected: !!tokenStore.refreshToken });
+  res.json({ status: "JobSlot AI Proxy v14", timestamp: new Date().toISOString(), currentWeek: { gte, lte }, connected: !!tokenStore.refreshToken });
 });
 
 app.get("/connect", (req, res) => {
