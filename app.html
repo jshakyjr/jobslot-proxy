@@ -42,7 +42,7 @@
   .logout-btn{padding:5px 10px;border-radius:7px;background:transparent;color:#475569;border:1px solid #1e293b;font-size:11px;cursor:pointer;margin-left:8px}
 
   .main{display:grid;flex:1;overflow:hidden}
-  .main.split{grid-template-columns:380px 1fr}
+  .main.split{grid-template-columns:400px 1fr}
   .main.full{grid-template-columns:1fr}
   .left-panel{border-right:1px solid #1a2035;overflow-y:auto;padding:18px;background:#0d1220}
   .right-panel{overflow-y:auto;padding:18px;background:#0c0f1a}
@@ -64,6 +64,30 @@
   .range-header{display:flex;justify-content:space-between;margin-bottom:4px}
   input[type=range]{width:100%;accent-color:#0ea5e9}
 
+  /* Quote lookup */
+  .quote-lookup-box{background:#0f172a;border:1px solid #1e3a5f;border-radius:10px;padding:12px;margin-bottom:14px}
+  .quote-lookup-row{display:flex;gap:8px;align-items:flex-end}
+  .quote-lookup-row .input{flex:1;margin:0}
+  .lookup-btn{padding:8px 14px;border-radius:8px;background:#1e3a5f;color:#38bdf8;border:1px solid #38bdf8;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+  .lookup-btn:hover{background:#1e4976}
+  .lookup-btn:disabled{opacity:.5;cursor:not-allowed}
+  .quote-status{font-size:11px;margin-top:6px;min-height:16px}
+  .quote-ok{color:#4ade80}
+  .quote-err{color:#f87171}
+  .quote-loaded-badge{display:inline-flex;align-items:center;gap:5px;background:#064e3b;border:1px solid #065f46;border-radius:6px;padding:3px 8px;font-size:11px;color:#4ade80;font-weight:600;margin-top:6px}
+
+  /* Hours calculated row */
+  .hours-calc-hint{font-size:10px;color:#38bdf8;margin-top:3px;cursor:pointer}
+  .hours-calc-hint:hover{text-decoration:underline}
+
+  /* Job type rates table */
+  .rates-table{width:100%;border-collapse:collapse;margin-top:8px}
+  .rates-table th{font-size:10px;color:#64748b;font-weight:600;letter-spacing:.5px;text-align:left;padding:5px 8px;border-bottom:1px solid #1e293b}
+  .rates-table td{padding:5px 6px;border-bottom:1px solid #111827;font-size:12px}
+  .rates-table tr:last-child td{border-bottom:none}
+  .rate-input{width:80px;padding:5px 8px;border-radius:6px;border:1px solid #1e293b;background:#0c0f1a;color:#e2e8f0;font-size:12px;text-align:right}
+  .rate-input:focus{outline:none;border-color:#38bdf8}
+
   /* Schedule */
   .day-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
   .day-card{background:#0f172a;border-radius:10px;padding:9px 10px;border:1px solid #1a2035;text-align:center}
@@ -74,7 +98,6 @@
   .time-cell{padding:5px 7px;border-right:1px solid #1a2035;display:flex;align-items:flex-start;justify-content:flex-end;min-height:40px}
   .slot-cell{border-right:1px solid #111827;padding:3px;min-height:40px;transition:background .15s}
   .slot-cell:hover{background:rgba(56,189,248,.05)}
-  /* Stack chips vertically */
   .slot-cell .chips{display:flex;flex-direction:column;gap:2px}
   .job-chip{border-radius:6px;padding:3px 6px;cursor:pointer;transition:all .15s;position:relative;margin-bottom:1px}
   .job-chip:hover{filter:brightness(1.1)}
@@ -90,6 +113,7 @@
   @keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
   .empty-state{text-align:center;padding-top:50px;color:#334155}
   .legend{margin-top:10px;font-size:10px;color:#334155}
+  .divider{border:none;border-top:1px solid #1a2035;margin:14px 0}
 </style>
 </head>
 <body>
@@ -126,20 +150,53 @@
   <div class="main split" id="main-area" style="height:calc(100vh - 65px)">
     <div class="left-panel" id="left-panel">
 
+      <!-- ── ADD JOB TAB ── -->
       <div id="tab-add">
         <div class="section-title">NEW JOB</div>
+
+        <!-- Quote Lookup -->
+        <div class="quote-lookup-box">
+          <label class="label" style="margin-bottom:6px">IMPORT FROM JOBBER QUOTE</label>
+          <div class="quote-lookup-row">
+            <input class="input" id="quote-number-input" type="text" placeholder="Quote # (e.g. 1042)" onkeydown="if(event.key==='Enter')lookupQuote()">
+            <button class="lookup-btn" id="lookup-btn" onclick="lookupQuote()">🔍 Lookup</button>
+          </div>
+          <div class="quote-status" id="quote-status"></div>
+        </div>
+
+        <hr class="divider">
+
         <div class="field"><label class="label">JOB NAME / CLIENT</label><input class="input" id="job-name" placeholder="e.g. Smith Residence"></div>
-        <div class="field"><label class="label">SERVICE ADDRESS</label><input class="input" id="job-address" placeholder="123 Main St, City"></div>
+        <div class="field">
+          <label class="label">SERVICE ADDRESS</label>
+          <input class="input" id="job-address" placeholder="123 Main St, City" onblur="autoCalculateMiles()">
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <input type="text" id="job-base-override" class="input" placeholder="Override base address (optional)" style="font-size:11px;padding:5px 8px;color:#64748b" onblur="autoCalculateMiles()">
+          </div>
+          <div style="font-size:10px;color:#475569;margin-top:2px">Leave override blank to use base address from Params</div>
+        </div>
         <div class="field">
           <label class="label">SERVICE TYPE</label>
-          <select class="input" id="job-service">
-            <option>Pressure Washing</option><option>Soft Washing</option><option>Window Cleaning</option>
-            <option>Restoration</option><option>Low Moisture Carpet Cleaning</option><option>Electrical</option>
+          <select class="input" id="job-service" onchange="onServiceChange()">
+            <option>Pressure Washing</option>
+            <option>Soft Washing</option>
+            <option>Window Cleaning</option>
+            <option>Restoration</option>
+            <option>Low Moisture Carpet Cleaning</option>
+            <option>Electrical</option>
           </select>
         </div>
         <div class="grid2">
-          <div class="field"><label class="label">EST. HOURS</label><input class="input" type="number" id="job-hours" value="2" min=".5" max="12" step=".5"></div>
-          <div class="field"><label class="label">MILES FROM BASE</label><input class="input" type="number" id="job-miles" value="0" min="0" max="100"></div>
+          <div class="field">
+            <label class="label">EST. HOURS</label>
+            <input class="input" type="number" id="job-hours" value="2" min=".5" max="12" step=".5" oninput="updateProfitPreview()">
+            <div class="hours-calc-hint" id="hours-calc-hint" style="display:none" onclick="applyCalculatedHours()"></div>
+          </div>
+          <div class="field">
+            <label class="label">MILES FROM BASE</label>
+            <input class="input" type="number" id="job-miles" value="0" min="0" max="300" step="0.1" oninput="updateProfitPreview()">
+            <div class="hours-calc-hint" id="miles-calc-hint" style="display:none"></div>
+          </div>
         </div>
         <div class="grid2">
           <div class="field">
@@ -172,8 +229,16 @@
         <button class="add-btn" id="add-btn" onclick="addJob()">⚡ Add &amp; Auto-Schedule</button>
       </div>
 
+      <!-- ── PARAMS TAB ── -->
       <div id="tab-params" style="display:none">
         <div class="section-title">BUSINESS PARAMETERS</div>
+
+        <!-- Base Address -->
+        <div class="field" style="margin-bottom:18px;padding:12px;background:#0f172a;border:1px solid #1e3a5f;border-radius:10px">
+          <label class="label" style="color:#38bdf8">BASE ADDRESS (YOUR SHOP / HOME)</label>
+          <input class="input" id="p-base-address" placeholder="e.g. 123 Shop Rd, York, PA 17401" style="margin-bottom:4px">
+          <div style="font-size:10px;color:#475569">Used to auto-calculate driving miles for every job. Set once, apply everywhere.</div>
+        </div>
         <div class="range-row">
           <div class="range-header"><label class="label" style="margin:0">LABOR RATE ($/HR/PERSON)</label><span id="lbl-labor" style="font-size:12px;font-weight:600">$65</span></div>
           <input type="range" min="1" max="200" value="65" id="p-labor" oninput="updateParam('labor',this.value)">
@@ -194,6 +259,24 @@
           <div class="range-header"><label class="label" style="margin:0">WORKDAY END</label><span id="lbl-end" style="font-size:12px;font-weight:600">6:00 PM</span></div>
           <input type="range" min="14" max="22" value="18" id="p-end" oninput="updateParam('end',this.value)">
         </div>
+
+        <!-- Job Type Rates -->
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid #1a2035">
+          <div class="section-title">COST PER MAN HOUR BY JOB TYPE</div>
+          <div style="font-size:11px;color:#475569;margin-bottom:10px;line-height:1.5">
+            Used by AI to calculate estimated crew hours from quote totals. Set the fully-loaded cost (labor + overhead) per man per hour for each service type.
+          </div>
+          <table class="rates-table">
+            <thead>
+              <tr>
+                <th>SERVICE TYPE</th>
+                <th style="text-align:right">$/MAN HR</th>
+              </tr>
+            </thead>
+            <tbody id="job-type-rates-body"></tbody>
+          </table>
+        </div>
+
         <div style="margin-top:24px;padding-top:20px;border-top:1px solid #1a2035">
           <div class="section-title">JOBBER CONNECTION</div>
           <label class="label">RENDER PROXY URL</label>
@@ -224,7 +307,6 @@
 <script>
 const PASSWORD = "PristineSchedule";
 const PROXY_URL = "https://jobslot-proxy.onrender.com";
-const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
 const SHORT_DAYS = ["MON","TUE","WED","THU","FRI"];
 const SLOT_HOURS = [7,8,9,10,11,12,13,14,15,16,17];
 const SERVICE_COLORS = {
@@ -236,17 +318,75 @@ const SERVICE_COLORS = {
   "Electrical":{bg:"#eab308",text:"#000"},
   "Jobber Job":{bg:"#0ea5e9",text:"#fff"},
 };
-const PARAMS = {labor:65,crew:2,fuel:0.21,start:7,end:18};
 
-// schedule is now: { "MON-8": [jobId1, jobId2, ...] }
+const SERVICE_TYPES = [
+  "Pressure Washing",
+  "Soft Washing",
+  "Window Cleaning",
+  "Restoration",
+  "Low Moisture Carpet Cleaning",
+  "Electrical",
+];
+
+// Default cost per man hour by service type
+const JOB_TYPE_RATES = {
+  "Pressure Washing": 85,
+  "Soft Washing": 75,
+  "Window Cleaning": 70,
+  "Restoration": 95,
+  "Low Moisture Carpet Cleaning": 80,
+  "Electrical": 110,
+};
+
+const PARAMS = {labor:65,crew:2,fuel:0.21,start:7,end:18,baseAddress:""};
 let jobs = [], schedule = {}, lineItems = [{desc:"",cost:0}];
+let calculatedHours = null; // holds AI-suggested hours from quote
+let milesLookupTimer = null;
 
+// ── MILEAGE AUTO-CALCULATE ────────────────────────────────────────────────────
+async function autoCalculateMiles(){
+  const jobAddr = document.getElementById("job-address").value.trim();
+  const overrideBase = document.getElementById("job-base-override")?.value.trim();
+  const baseAddr = overrideBase || PARAMS.baseAddress;
+
+  if(!jobAddr || !baseAddr){
+    document.getElementById("miles-calc-hint").style.display="none";
+    return;
+  }
+
+  const hint = document.getElementById("miles-calc-hint");
+  hint.style.display = "block";
+  hint.textContent = "📍 Calculating drive distance...";
+
+  try {
+    const proxyUrl = (document.getElementById("proxy-url-input")?.value || PROXY_URL).replace(/\/$/,"");
+    const res = await fetch(`${proxyUrl}/distance?` + new URLSearchParams({ origin: baseAddr, destination: jobAddr }));
+    const data = await res.json();
+
+    if(!res.ok || data.error) throw new Error(data.error || "Distance lookup failed");
+
+    const miles = data.miles;
+    hint.textContent = `→ ${miles} miles driving · Click to apply`;
+    hint.onclick = () => {
+      document.getElementById("job-miles").value = miles;
+      updateProfitPreview();
+      hint.textContent = `✓ ${miles} miles applied`;
+      hint.onclick = null;
+    };
+  } catch(err) {
+    hint.textContent = `✗ ${err.message} — enter miles manually`;
+    hint.style.color = "#f87171";
+    setTimeout(() => { hint.style.display="none"; hint.style.color=""; }, 4000);
+  }
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
 function doLogin(){
   if(document.getElementById("pw-input").value===PASSWORD){
     sessionStorage.setItem("kip_auth","1");
     document.getElementById("login-screen").style.display="none";
     document.getElementById("app-screen").style.display="flex";
-    renderLineItems(); renderGrid(); renderDaySummary();
+    renderLineItems(); renderGrid(); renderDaySummary(); renderJobTypeRates();
   } else {
     document.getElementById("login-error").textContent="Incorrect password.";
   }
@@ -257,6 +397,7 @@ if(sessionStorage.getItem("kip_auth")==="1"){
   document.getElementById("app-screen").style.display="flex";
 }
 
+// ── TABS ──────────────────────────────────────────────────────────────────────
 function setTab(t){
   ["add","params"].forEach(x=>{
     const el=document.getElementById("tab-"+x);
@@ -270,11 +411,11 @@ function setTab(t){
   document.getElementById("left-panel").style.display=isSchedule?"none":"block";
 }
 
+// ── HELPERS ───────────────────────────────────────────────────────────────────
 function fmtHour(h){const s=h>=12?"PM":"AM",d=h>12?h-12:h===0?12:h;return `${d}:00 ${s}`}
 function calcProfit(j){return j.revenue-j.estimatedHours*PARAMS.labor*PARAMS.crew-j.distanceMiles*2*PARAMS.fuel}
 function getJobById(id){return jobs.find(j=>j.id===id)}
 
-// Get all jobs scheduled for a day across all hours
 function getAllJobsForDay(dayShort){
   const result=[];
   Object.entries(schedule).forEach(([key,ids])=>{
@@ -288,41 +429,145 @@ function getAllJobsForDay(dayShort){
   return result;
 }
 
-// Add job to schedule (supports multiple per slot)
-function addToSchedule(day, hour, jobId){
+function addToSchedule(day,hour,jobId){
   const key=`${day}-${hour}`;
   if(!schedule[key]) schedule[key]=[];
   if(!schedule[key].includes(jobId)) schedule[key].push(jobId);
 }
 
-// Remove job from schedule
-function removeFromSchedule(key, jobId){
+function removeFromSchedule(key,jobId){
   if(!schedule[key]) return;
   schedule[key]=schedule[key].filter(id=>id!==jobId);
   if(schedule[key].length===0) delete schedule[key];
   renderGrid(); renderDaySummary();
 }
 
+// ── PARAMS ────────────────────────────────────────────────────────────────────
 function updateParam(k,v){
+  if(k==="baseAddress"){ PARAMS.baseAddress=v; return; }
   PARAMS[k]=parseFloat(v);
   const labels={labor:`$${v}`,crew:v,fuel:`$${parseFloat(v).toFixed(2)}`,start:fmtHour(parseInt(v)),end:fmtHour(parseInt(v))};
   document.getElementById("lbl-"+k).textContent=labels[k];
   updateProfitPreview();
 }
 
+// ── JOB TYPE RATES TABLE ──────────────────────────────────────────────────────
+function renderJobTypeRates(){
+  const tbody = document.getElementById("job-type-rates-body");
+  if(!tbody) return;
+  tbody.innerHTML = "";
+  SERVICE_TYPES.forEach(svc => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="color:#94a3b8">${svc}</td>
+      <td style="text-align:right">
+        <input class="rate-input" type="number" min="1" max="500" value="${JOB_TYPE_RATES[svc]||75}"
+          onchange="JOB_TYPE_RATES['${svc}']=parseFloat(this.value)||75; updateHoursHint()">
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── QUOTE LOOKUP ──────────────────────────────────────────────────────────────
+async function lookupQuote(){
+  const qNum = document.getElementById("quote-number-input").value.trim();
+  if(!qNum){ setQuoteStatus("Enter a quote number first.", "err"); return; }
+  const btn = document.getElementById("lookup-btn");
+  const statusEl = document.getElementById("quote-status");
+  btn.disabled = true;
+  btn.textContent = "⏳ Looking up...";
+  setQuoteStatus("Fetching from Jobber...", "");
+
+  try {
+    const url = (document.getElementById("proxy-url-input")?.value || PROXY_URL).replace(/\/$/,"");
+    const res = await fetch(`${url}/quote/${encodeURIComponent(qNum)}`);
+    const data = await res.json();
+
+    if(!res.ok || data.error){
+      throw new Error(data.error || `Server error ${res.status}`);
+    }
+
+    const q = data.quote;
+
+    // Populate form fields
+    document.getElementById("job-name").value = q.clientName || q.title || "";
+    document.getElementById("job-address").value = q.address || "";
+
+    // Populate line items
+    if(q.lineItems && q.lineItems.length > 0){
+      lineItems = q.lineItems.map(li => ({ desc: li.desc, cost: li.cost }));
+    } else {
+      lineItems = [{ desc: q.title || "Service", cost: q.total }];
+    }
+    renderLineItems();
+
+    // Calculate suggested hours from revenue ÷ job type rate
+    calculatedHours = null;
+    updateHoursHint();
+
+    setQuoteStatus(`✓ Quote #${q.quoteNumber} loaded — ${q.clientName}`, "ok");
+
+  } catch(err){
+    setQuoteStatus(`✗ ${err.message}`, "err");
+  }
+
+  btn.disabled = false;
+  btn.textContent = "🔍 Lookup";
+}
+
+function setQuoteStatus(msg, type){
+  const el = document.getElementById("quote-status");
+  el.textContent = msg;
+  el.className = "quote-status" + (type === "ok" ? " quote-ok" : type === "err" ? " quote-err" : "");
+}
+
+// Called when service type changes or revenue changes — show calculated hours hint
+function updateHoursHint(){
+  const svc = document.getElementById("job-service").value;
+  const rate = JOB_TYPE_RATES[svc] || 75;
+  const rev = lineItems.reduce((s,i)=>s+Number(i.cost||0),0);
+  const hint = document.getElementById("hours-calc-hint");
+
+  if(rev > 0 && rate > 0){
+    const crew = PARAMS.crew || 1;
+    calculatedHours = Math.round((rev / (rate * crew)) * 2) / 2; // round to nearest 0.5
+    calculatedHours = Math.max(0.5, calculatedHours);
+    hint.style.display = "block";
+    hint.textContent = `→ Calculated: ${calculatedHours}h at $${rate}/man hr · Click to apply`;
+  } else {
+    hint.style.display = "none";
+    calculatedHours = null;
+  }
+}
+
+function applyCalculatedHours(){
+  if(calculatedHours !== null){
+    document.getElementById("job-hours").value = calculatedHours;
+    updateProfitPreview();
+  }
+}
+
+function onServiceChange(){
+  updateHoursHint();
+  updateProfitPreview();
+}
+
+// ── LINE ITEMS ────────────────────────────────────────────────────────────────
 function renderLineItems(){
   const c=document.getElementById("line-items"); c.innerHTML="";
   lineItems.forEach((li,i)=>{
     const row=document.createElement("div"); row.className="li-row";
     row.innerHTML=`<input class="input" style="padding:7px 9px;font-size:12px" placeholder="Description" value="${li.desc||""}" oninput="lineItems[${i}].desc=this.value">
-      <input class="input" style="padding:7px 9px;font-size:12px" type="number" placeholder="$0" value="${li.cost||""}" oninput="lineItems[${i}].cost=parseFloat(this.value)||0;updateProfitPreview()">
+      <input class="input" style="padding:7px 9px;font-size:12px" type="number" placeholder="$0" value="${li.cost||""}" oninput="lineItems[${i}].cost=parseFloat(this.value)||0;updateProfitPreview();updateHoursHint()">
       <button class="li-remove" onclick="removeLineItem(${i})">×</button>`;
     c.appendChild(row);
   });
   updateProfitPreview();
+  updateHoursHint();
 }
 function addLineItem(){lineItems.push({desc:"",cost:0});renderLineItems()}
 function removeLineItem(i){lineItems.splice(i,1);renderLineItems()}
+
 function updateProfitPreview(){
   const rev=lineItems.reduce((s,i)=>s+Number(i.cost||0),0);
   document.getElementById("total-revenue").textContent=`$${rev.toLocaleString()}`;
@@ -338,25 +583,37 @@ function updateProfitPreview(){
   } else { pg.style.display="none"; }
 }
 
+// ── ADD JOB & AI ──────────────────────────────────────────────────────────────
 async function addJob(){
   const name=document.getElementById("job-name").value.trim();
   const address=document.getElementById("job-address").value.trim();
   if(!name||!address){alert("Please enter a job name and address.");return;}
   const revenue=lineItems.reduce((s,i)=>s+Number(i.cost||0),0);
+  const svc=document.getElementById("job-service").value;
   const job={
     id:Date.now(), name,
-    service:document.getElementById("job-service").value,
+    service:svc,
     address,
     estimatedHours:parseFloat(document.getElementById("job-hours").value)||2,
     distanceMiles:parseFloat(document.getElementById("job-miles").value)||0,
     preferredDay:document.getElementById("job-pref-day").value,
     preferredTime:document.getElementById("job-pref-time").value,
-    revenue, lineItems:[...lineItems]
+    revenue, lineItems:[...lineItems],
+    costPerManHour: JOB_TYPE_RATES[svc] || 75,
   };
   jobs.push(job);
+
+  // Reset form
   document.getElementById("job-name").value="";
   document.getElementById("job-address").value="";
+  document.getElementById("job-base-override").value="";
+  document.getElementById("quote-number-input").value="";
+  document.getElementById("quote-status").textContent="";
+  document.getElementById("hours-calc-hint").style.display="none";
+  document.getElementById("miles-calc-hint").style.display="none";
+  calculatedHours=null;
   lineItems=[{desc:"",cost:0}]; renderLineItems();
+
   document.getElementById("add-btn").disabled=true;
   document.getElementById("add-btn").textContent="🤖 Finding Best Slot...";
   setTab("schedule");
@@ -370,12 +627,14 @@ async function runAI(job){
   document.getElementById("rec-banner").style.display="none";
   document.getElementById("empty-state").style.display="none";
 
-  // Build schedule summary for AI — show all jobs per slot
   const scheduledSummary=Object.entries(schedule).map(([key,ids])=>{
     const names=(ids||[]).map(id=>{const j=getJobById(id);return j?j.name:null}).filter(Boolean).join(", ");
     const hour=parseInt(key.split("-")[1]);
     return names?`${key} (${fmtHour(hour)}): ${names}`:null;
   }).filter(Boolean).join("\n");
+
+  // Build job type rate context for AI
+  const rateContext = SERVICE_TYPES.map(s=>`  ${s}: $${JOB_TYPE_RATES[s]||75}/man hr`).join("\n");
 
   const prompt=`You are a field service scheduling optimizer for a company that does: Pressure Washing, Soft Washing, Window Cleaning, Restoration, Low Moisture Carpet Cleaning, Electrical. They run 5-7 crews simultaneously.
 
@@ -384,14 +643,18 @@ Business parameters:
 - Fuel cost: $${PARAMS.fuel}/mile
 - Workday: ${fmtHour(PARAMS.start)} to ${fmtHour(PARAMS.end)}
 
+Cost per man hour by job type (used for crew time estimation):
+${rateContext}
+
 New job to schedule:
 - Name: ${job.name}
 - Service: ${job.service}
 - Address: ${job.address}
-- Duration: ${job.estimatedHours} hours
+- Duration: ${job.estimatedHours} hours (based on $${job.costPerManHour}/man hr rate for ${job.service})
 - Revenue: $${job.revenue}
 - Distance: ${job.distanceMiles} miles
 - Profit: $${calcProfit(job).toFixed(2)}
+- Line items: ${job.lineItems.map(li=>`${li.desc} ($${li.cost})`).join(", ")||"None"}
 - Client preferred day: ${job.preferredDay||"flexible"}
 - Client preferred time: ${job.preferredTime||"flexible"}
 
@@ -406,7 +669,8 @@ Respond ONLY in valid JSON:
 {"day":"Monday","startHour":9,"reason":"2-3 sentence explanation","profitScore":85,"driveScore":72,"preferenceScore":60,"warnings":[]}`;
 
   try{
-    const res=await fetch(`${PROXY_URL}/ai/schedule`,{
+    const proxyUrl=(document.getElementById("proxy-url-input")?.value||PROXY_URL).replace(/\/$/,"");
+    const res=await fetch(`${proxyUrl}/ai/schedule`,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({prompt})
@@ -453,8 +717,9 @@ function showRecommendation(rec,job){
   `;
 }
 
+// ── JOBBER SYNC ───────────────────────────────────────────────────────────────
 async function syncJobber(){
-  const url=(document.getElementById("proxy-url-input").value||PROXY_URL).replace(/\/$/,"");
+  const url=(document.getElementById("proxy-url-input")?.value||PROXY_URL).replace(/\/$/,"");
   const btn=document.getElementById("sync-btn");
   const pill=document.getElementById("sync-status-pill");
   btn.disabled=true; btn.textContent="⟳ Syncing...";
@@ -464,13 +729,11 @@ async function syncJobber(){
     if(!res.ok) throw new Error(`Server returned ${res.status}`);
     const data=await res.json();
     if(!data.success) throw new Error(data.error||"Unknown error");
-    // Clear existing Jobber jobs from schedule before re-adding
     jobs=jobs.filter(j=>!j.fromJobber);
     Object.keys(schedule).forEach(key=>{
       schedule[key]=(schedule[key]||[]).filter(id=>!getJobById(id)?.fromJobber);
       if(schedule[key].length===0) delete schedule[key];
     });
-    // Add fresh Jobber jobs
     data.jobs.forEach(jj=>{
       jobs.push(jj);
       if(jj.scheduledDay&&jj.scheduledHour!==null){
@@ -492,30 +755,26 @@ async function syncJobber(){
   setTimeout(()=>pill.style.display="none",5000);
 }
 
+// ── GRID RENDER ───────────────────────────────────────────────────────────────
 function renderGrid(){
   const g=document.getElementById("week-grid"); g.innerHTML="";
   const hdr=document.createElement("div"); hdr.className="grid-header";
   hdr.innerHTML=`<div style="padding:10px;border-right:1px solid #1a2035"></div>`+
     SHORT_DAYS.map(d=>`<div class="grid-header-cell">${d}</div>`).join("");
   g.appendChild(hdr);
-
   SLOT_HOURS.forEach(hour=>{
-    // Find max jobs in any slot this hour to set row height
     const maxJobs=Math.max(1,...SHORT_DAYS.map(day=>{
       const key=`${day}-${hour}`;
       return (schedule[key]||[]).length;
     }));
-
     const row=document.createElement("div"); row.className="grid-row";
     row.style.minHeight=`${Math.max(40, maxJobs*38)}px`;
     row.innerHTML=`<div class="time-cell"><span style="font-size:10px;color:#334155;font-weight:600">${fmtHour(hour)}</span></div>`;
-
     SHORT_DAYS.forEach(day=>{
       const key=`${day}-${hour}`;
       const ids=schedule[key]||[];
       const cell=document.createElement("div"); cell.className="slot-cell";
       const chips=document.createElement("div"); chips.className="chips";
-
       ids.forEach(jobId=>{
         const job=getJobById(jobId);
         if(!job) return;
@@ -534,7 +793,6 @@ function renderGrid(){
         if(!isJobber) chip.onclick=()=>removeFromSchedule(key, jobId);
         chips.appendChild(chip);
       });
-
       cell.appendChild(chips);
       row.appendChild(cell);
     });
@@ -557,9 +815,11 @@ function renderDaySummary(){
   });
 }
 
-renderLineItems(); renderGrid(); renderDaySummary();
-document.getElementById("job-hours").addEventListener("input",updateProfitPreview);
-document.getElementById("job-miles").addEventListener("input",updateProfitPreview);
+// ── INIT ──────────────────────────────────────────────────────────────────────
+renderLineItems(); renderGrid(); renderDaySummary(); renderJobTypeRates();
+document.getElementById("job-hours").addEventListener("input", updateProfitPreview);
+document.getElementById("job-miles").addEventListener("input", updateProfitPreview);
+document.getElementById("p-base-address").addEventListener("input", e => updateParam("baseAddress", e.target.value));
 </script>
 </body>
 </html>
