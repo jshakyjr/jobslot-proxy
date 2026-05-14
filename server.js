@@ -1,5 +1,6 @@
-// JobSlot AI — Jobber Proxy Server v13
+// JobSlot AI — Jobber Proxy Server v14
 // OAuth2 + persistent tokens + AI scheduling + quote lookup
+// Token management: refresh lock, backoff, minimal API quota usage
 
 const express = require("express");
 const path = require("path");
@@ -15,11 +16,21 @@ const JOBBER_TOKEN_URL     = "https://api.getjobber.com/api/oauth/token";
 const JOBBER_AUTH_URL      = "https://api.getjobber.com/api/oauth/authorize";
 const JOBBER_API_VERSION   = "2025-04-16";
 
+// Token store — loaded from env vars on cold start, kept in memory
 let tokenStore = {
   accessToken:  process.env.JOBBER_ACCESS_TOKEN  || null,
   refreshToken: process.env.JOBBER_REFRESH_TOKEN || null,
-  expiresAt:    0,
+  // On cold start we don't know when the token expires, so set expiresAt=0
+  // to trigger one refresh, then cache the result for the full token lifetime
+  expiresAt: 0,
 };
+
+// Refresh lock — prevents multiple concurrent requests all triggering a refresh
+let refreshPromise = null;
+
+// Backoff state — after a failed refresh, wait before retrying
+let lastRefreshFailAt = 0;
+const REFRESH_BACKOFF_MS = 60 * 1000; // 1 minute cooldown after failure
 
 async function saveTokensToRender(tokens) {
   if (!RENDER_API_KEY || !RENDER_SERVICE_ID) return;
@@ -35,32 +46,62 @@ async function saveTokensToRender(tokens) {
         { key: "RENDER_API_KEY",       value: RENDER_API_KEY      || "" },
         { key: "RENDER_SERVICE_ID",    value: RENDER_SERVICE_ID   || "" },
         { key: "ANTHROPIC_API_KEY",    value: process.env.ANTHROPIC_API_KEY || "" },
+        { key: "GOOGLE_MAPS_API_KEY",  value: process.env.GOOGLE_MAPS_API_KEY || "" },
       ]),
     });
     console.log("Tokens saved to Render.");
   } catch(e) { console.log("Render save error:", e.message); }
 }
 
-async function refreshAccessToken() {
+async function _doRefresh() {
   if (!tokenStore.refreshToken) throw new Error("NO_REFRESH_TOKEN");
   console.log("Refreshing access token...");
   const res = await fetch(JOBBER_TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "refresh_token", client_id: JOBBER_CLIENT_ID, client_secret: JOBBER_CLIENT_SECRET, refresh_token: tokenStore.refreshToken }),
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      client_id: JOBBER_CLIENT_ID,
+      client_secret: JOBBER_CLIENT_SECRET,
+      refresh_token: tokenStore.refreshToken,
+    }),
   });
-  if (!res.ok) { const txt = await res.text(); throw new Error(`Refresh failed (${res.status}): ${txt.slice(0,200)}`); }
+  if (!res.ok) {
+    const txt = await res.text();
+    lastRefreshFailAt = Date.now();
+    throw new Error(`Refresh failed (${res.status}): ${txt.slice(0,200)}`);
+  }
   const data = await res.json();
   tokenStore.accessToken  = data.access_token;
   tokenStore.refreshToken = data.refresh_token || tokenStore.refreshToken;
-  tokenStore.expiresAt    = Date.now() + (data.expires_in || 3300) * 1000;
+  // Use full token lifetime — don't refresh early unless truly needed
+  tokenStore.expiresAt    = Date.now() + (data.expires_in || 3600) * 1000;
+  lastRefreshFailAt = 0; // reset backoff on success
   await saveTokensToRender(tokenStore);
-  console.log("Token refreshed and saved.");
+  console.log(`Token refreshed. Valid for ${Math.round((tokenStore.expiresAt - Date.now()) / 60000)} min.`);
   return tokenStore.accessToken;
 }
 
+async function refreshAccessToken() {
+  // If a refresh is already in flight, wait for it instead of firing another
+  if (refreshPromise) {
+    console.log("Refresh already in progress — waiting...");
+    return refreshPromise;
+  }
+  // Backoff: don't retry within 1 minute of a failure
+  if (lastRefreshFailAt && Date.now() - lastRefreshFailAt < REFRESH_BACKOFF_MS) {
+    const waitSec = Math.ceil((REFRESH_BACKOFF_MS - (Date.now() - lastRefreshFailAt)) / 1000);
+    throw new Error(`Token refresh on cooldown — try again in ${waitSec}s`);
+  }
+  refreshPromise = _doRefresh().finally(() => { refreshPromise = null; });
+  return refreshPromise;
+}
+
 async function getValidToken() {
-  if (tokenStore.accessToken && Date.now() < tokenStore.expiresAt - 120000) return tokenStore.accessToken;
+  // Token is valid and not expiring soon (5 min buffer) — return immediately, no API call
+  if (tokenStore.accessToken && Date.now() < tokenStore.expiresAt - 300000) {
+    return tokenStore.accessToken;
+  }
   if (tokenStore.refreshToken) return await refreshAccessToken();
   throw new Error("NO_REFRESH_TOKEN");
 }
