@@ -34,34 +34,39 @@ const REFRESH_BACKOFF_MS = 60 * 1000; // 1 minute cooldown after failure
 
 async function saveTokensToRender(tokens) {
   if (!RENDER_API_KEY || !RENDER_SERVICE_ID) return;
-  // Only save if tokens actually changed from what's in env vars
-  // This prevents a dying instance from overwriting a freshly saved token
   if (tokens.accessToken === process.env.JOBBER_ACCESS_TOKEN &&
       tokens.refreshToken === process.env.JOBBER_REFRESH_TOKEN) {
     console.log("Tokens unchanged — skipping Render save.");
     return;
   }
   try {
+    // GET current vars first, merge only the token keys, PUT back — avoids blanking other vars
+    const getRes = await fetch(`https://api.render.com/v1/services/${RENDER_SERVICE_ID}/env-vars`, {
+      headers: { "Authorization": `Bearer ${RENDER_API_KEY}`, "Accept": "application/json" },
+    });
+    let currentVars = [];
+    if (getRes.ok) {
+      const raw = await getRes.json();
+      currentVars = Array.isArray(raw)
+        ? raw.map(v => ({ key: v.envVar?.key || v.key, value: v.envVar?.value ?? v.value ?? "" }))
+        : [];
+    }
+    const updates = { JOBBER_ACCESS_TOKEN: tokens.accessToken || "", JOBBER_REFRESH_TOKEN: tokens.refreshToken || "" };
+    const merged = currentVars.map(v => updates[v.key] !== undefined ? { key: v.key, value: updates[v.key] } : v);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (!merged.find(v => v.key === key)) merged.push({ key, value });
+    });
     await fetch(`https://api.render.com/v1/services/${RENDER_SERVICE_ID}/env-vars`, {
       method: "PUT",
       headers: { "Authorization": `Bearer ${RENDER_API_KEY}`, "Content-Type": "application/json", "Accept": "application/json" },
-      body: JSON.stringify([
-        { key: "JOBBER_ACCESS_TOKEN",  value: tokens.accessToken  || "" },
-        { key: "JOBBER_REFRESH_TOKEN", value: tokens.refreshToken || "" },
-        { key: "JOBBER_CLIENT_ID",     value: JOBBER_CLIENT_ID    || "" },
-        { key: "JOBBER_CLIENT_SECRET", value: JOBBER_CLIENT_SECRET|| "" },
-        { key: "RENDER_API_KEY",       value: RENDER_API_KEY      || "" },
-        { key: "RENDER_SERVICE_ID",    value: RENDER_SERVICE_ID   || "" },
-        { key: "ANTHROPIC_API_KEY",    value: process.env.ANTHROPIC_API_KEY || "" },
-        { key: "GOOGLE_MAPS_API_KEY",  value: process.env.GOOGLE_MAPS_API_KEY || "" },
-      ]),
+      body: JSON.stringify(merged),
     });
-    // Update process.env so future comparisons are accurate
     process.env.JOBBER_ACCESS_TOKEN  = tokens.accessToken;
     process.env.JOBBER_REFRESH_TOKEN = tokens.refreshToken;
-    console.log("Tokens changed — saved to Render.");
+    console.log("Tokens saved to Render (safe merge).");
   } catch(e) { console.log("Render save error:", e.message); }
 }
+
 
 async function _doRefresh() {
   if (!tokenStore.refreshToken) throw new Error("NO_REFRESH_TOKEN");
@@ -397,4 +402,4 @@ function normalizeJobberResponse(nodes) {
   }).filter(j => j && j.scheduledDay && j.scheduledHour !== null);
 }
 
-app.listen(PORT, () => console.log(`JobSlot AI Proxy v14 on port ${PORT}`));
+app.listen(PORT, () => console.log(`JobSlot AI Proxy v12 on port ${PORT}`));
