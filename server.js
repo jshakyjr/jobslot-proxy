@@ -165,7 +165,8 @@ app.get("/connect", (req, res) => {
 app.get("/auth", (req, res) => {
   if (!JOBBER_CLIENT_ID) return res.status(500).send("JOBBER_CLIENT_ID not configured.");
   const redirectUri = "https://jobslot-proxy.onrender.com/auth/callback";
-  res.redirect(`${JOBBER_AUTH_URL}?client_id=${JOBBER_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code`);
+  const scope = "read_clients read_jobs read_visits read_quotes";
+  res.redirect(`${JOBBER_AUTH_URL}?client_id=${JOBBER_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`);
 });
 
 app.get("/auth/callback", async (req, res) => {
