@@ -328,19 +328,17 @@ const SERVICE_TYPES = [
   "Electrical",
 ];
 
-// Default cost per man hour by service type
-const JOB_TYPE_RATES = {
-  "Pressure Washing": 85,
-  "Soft Washing": 75,
-  "Window Cleaning": 70,
-  "Restoration": 95,
-  "Low Moisture Carpet Cleaning": 80,
-  "Electrical": 110,
-};
+// ── PERSISTENT STORAGE ───────────────────────────────────────────────────────
+const JOB_TYPE_RATE_DEFAULTS = {"Pressure Washing":85,"Soft Washing":75,"Window Cleaning":70,"Restoration":95,"Low Moisture Carpet Cleaning":80,"Electrical":110};
+function _loadSaved(key){ try{ const v=localStorage.getItem(key); return v?JSON.parse(v):null; }catch(e){return null;} }
+function saveParams(){ try{ localStorage.setItem("kip_params",JSON.stringify(PARAMS)); }catch(e){} }
+function saveRates(){ try{ localStorage.setItem("kip_rates",JSON.stringify(JOB_TYPE_RATES)); }catch(e){} }
 
-const PARAMS = {labor:65,crew:2,fuel:0.21,start:7,end:18,baseAddress:""};
+const PARAMS = Object.assign({labor:65,crew:2,fuel:0.21,start:7,end:18,baseAddress:""}, _loadSaved("kip_params")||{});
+const JOB_TYPE_RATES = Object.assign({}, JOB_TYPE_RATE_DEFAULTS, _loadSaved("kip_rates")||{});
+
 let jobs = [], schedule = {}, lineItems = [{desc:"",cost:0}];
-let calculatedHours = null; // holds AI-suggested hours from quote
+let calculatedHours = null;
 let milesLookupTimer = null;
 
 // ── MILEAGE AUTO-CALCULATE ────────────────────────────────────────────────────
@@ -457,11 +455,12 @@ function removeFromSchedule(key,jobId){
 
 // ── PARAMS ────────────────────────────────────────────────────────────────────
 function updateParam(k,v){
-  if(k==="baseAddress"){ PARAMS.baseAddress=v; return; }
+  if(k==="baseAddress"){ PARAMS.baseAddress=v; saveParams(); return; }
   PARAMS[k]=parseFloat(v);
   const labels={labor:`$${v}`,crew:v,fuel:`$${parseFloat(v).toFixed(2)}`,start:fmtHour(parseInt(v)),end:fmtHour(parseInt(v))};
   document.getElementById("lbl-"+k).textContent=labels[k];
   updateProfitPreview();
+  saveParams();
 }
 
 // ── JOB TYPE RATES TABLE ──────────────────────────────────────────────────────
@@ -475,7 +474,7 @@ function renderJobTypeRates(){
       <td style="color:#94a3b8">${svc}</td>
       <td style="text-align:right">
         <input class="rate-input" type="number" min="1" max="500" value="${JOB_TYPE_RATES[svc]||75}"
-          onchange="JOB_TYPE_RATES['${svc}']=parseFloat(this.value)||75; updateHoursHint()">
+          onchange="JOB_TYPE_RATES['${svc}']=parseFloat(this.value)||75; updateHoursHint(); saveRates();">
       </td>`;
     tbody.appendChild(tr);
   });
@@ -830,10 +829,30 @@ function renderDaySummary(){
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+// Restore saved slider/param values into UI
+(function restoreParamUI(){
+  const map = {labor:"p-labor",crew:"p-crew",fuel:"p-fuel",start:"p-start",end:"p-end"};
+  const labels = {
+    labor: v=>`$${v}`, crew: v=>v,
+    fuel: v=>`$${parseFloat(v).toFixed(2)}`,
+    start: v=>fmtHour(parseInt(v)), end: v=>fmtHour(parseInt(v))
+  };
+  Object.entries(map).forEach(([k,id])=>{
+    const el=document.getElementById(id);
+    if(el){ el.value=PARAMS[k]; document.getElementById("lbl-"+k).textContent=labels[k](PARAMS[k]); }
+  });
+  const ba=document.getElementById("p-base-address");
+  if(ba && PARAMS.baseAddress) ba.value=PARAMS.baseAddress;
+  const pu=document.getElementById("proxy-url-input");
+  if(pu && PARAMS.proxyUrl) pu.value=PARAMS.proxyUrl;
+})();
+
 renderLineItems(); renderGrid(); renderDaySummary(); renderJobTypeRates();
 document.getElementById("job-hours").addEventListener("input", updateProfitPreview);
 document.getElementById("job-miles").addEventListener("input", updateProfitPreview);
 document.getElementById("p-base-address").addEventListener("input", e => updateParam("baseAddress", e.target.value));
+// Also save proxy URL changes
+document.getElementById("proxy-url-input").addEventListener("change", e=>{ PARAMS.proxyUrl=e.target.value; saveParams(); });
 </script>
 </body>
 </html>
