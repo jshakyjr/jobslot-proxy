@@ -113,6 +113,22 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 
+// ─── STARTUP TOKEN VALIDATION ─────────────────────────────────────────────────
+// On cold start, attempt a token refresh so we know immediately if it's expired
+// rather than failing silently on the first real request.
+async function validateTokenOnStartup() {
+  if (!tokenStore.refreshToken) return;
+  try {
+    await getValidToken();
+    console.log("Startup token validation OK.");
+  } catch(e) {
+    console.warn("Startup token validation failed:", e.message);
+    console.warn("Visit https://jobslot-proxy.onrender.com/auth to reconnect Jobber.");
+  }
+}
+// Run after a short delay to not block server startup
+setTimeout(validateTokenOnStartup, 3000);
+
 app.get("/", (req, res) => {
   const { gte, lte } = get3MonthRange();
   res.json({ status: "JobSlot AI Proxy v15", timestamp: new Date().toISOString(), range: { gte, lte }, connected: !!tokenStore.refreshToken });
@@ -368,4 +384,11 @@ function normalizeJobberResponse(nodes) {
   }).filter(j => j && j.scheduledDay && j.scheduledHour !== null);
 }
 
-app.listen(PORT, () => console.log(`JobSlot AI Proxy v15 on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`JobSlot AI Proxy v15 on port ${PORT}`);
+  // Ping self every 10 min to prevent Render free tier spin-down
+  setInterval(async () => {
+    try { await fetch("https://jobslot-proxy.onrender.com/"); }
+    catch(e) { console.log("Self-ping failed:", e.message); }
+  }, 10 * 60 * 1000);
+});
