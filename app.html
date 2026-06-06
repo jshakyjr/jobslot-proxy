@@ -1271,70 +1271,73 @@ async function optimizeSchedule(){
   const slotTruckCount={};
   Object.entries(schedule).forEach(([key,ids])=>{ slotTruckCount[key]=(ids||[]).length; });
 
+  // Ultra-compact schedule summary to minimize tokens
   const scheduledSummary = windowSchedule.map(({job,key,dateStr,hour})=>{
-    const trucksInSlot = slotTruckCount[key]||0;
-    return `${dateStr} ${fmtHour(hour)} [${trucksInSlot}/${PARAMS.totaltrucks} trucks] — ${job.name} (${job.service}, ${job.estimatedHours}h, $${job.revenue} rev, $${calcProfit(job).toFixed(0)} profit)`;
+    const t = slotTruckCount[key]||0;
+    const svcAbbr = job.service.split(" ").map(w=>w[0]).join(""); // e.g. "PW","SW","IWC"
+    return `${dateStr} ${hour}h [${t}T] ${job.name}|${svcAbbr}|${job.estimatedHours}h|$${calcProfit(job).toFixed(0)}p`;
   }).join("\n");
 
   const availTechs=TECHS.filter(t=>t.available&&t.name);
   const rateContext=SERVICE_TYPES.map(s=>`  ${s}: $${JOB_TYPE_RATES[s]||75}/man hr`).join("\n");
 
   const currentJobBlock = currentJob
-    ? `\nCURRENT UNSCHEDULED JOB (include in optimization if checkbox checked):\n- Name: ${currentJob.name}\n- Service: ${currentJob.service}\n- Duration: ${currentJob.estimatedHours}h\n- Revenue: $${currentJob.revenue}\n- Profit: $${calcProfit(currentJob).toFixed(0)}\n- Address: ${currentJob.address}`
+    ? `\nUNSCHEDULED: ${currentJob.name}|${currentJob.service}|${currentJob.estimatedHours}h|$${calcProfit(currentJob).toFixed(0)}p|${currentJob.address}`
     : "";
 
-  const prompt = `You are a field service schedule optimizer. Analyze the current schedule within the date window and suggest specific moves to maximize profit, fill gaps, and balance workload. Return ONLY valid JSON.
+  const prompt = `Schedule optimizer. JSON only, no prose.
 
-Business parameters:
-- Labor: $${PARAMS.labor}/hr/person, Crew size: ${PARAMS.crew}
-- Total trucks: ${PARAMS.totaltrucks} (HARD LIMIT per slot), Total techs: ${PARAMS.totaltechs}
-- Workday: ${fmtHour(PARAMS.start)}–${fmtHour(PARAMS.end)}
-- Available techs: ${availTechs.map(t=>t.name+(t.canDrive?" (driver)":"")).join(", ")||"none listed"}
+Params: labor $${PARAMS.labor}/hr, crew ${PARAMS.crew}, trucks ${PARAMS.totaltrucks} (hard limit), techs ${PARAMS.totaltechs}, day ${fmtHour(PARAMS.start)}-${fmtHour(PARAMS.end)}
+Window: ${win.start} to ${win.end}
+Techs: ${availTechs.map(t=>t.name+(t.canDrive?"*":"")).join(",")||"none"} (*=driver)
+Rates: ${SERVICE_TYPES.map(s=>`${s.split(" ")[0]}=$${JOB_TYPE_RATES[s]||75}`).join(",")}
 
-Optimization window: ${win.start} to ${win.end}
-Optimization priorities (in order): 1) Maximize daily profit  2) Fill scheduling gaps  3) Balance workload across days
-
-Cost per man hour:
-${rateContext}
-
-CURRENT SCHEDULE IN WINDOW:
-${scheduledSummary||"Empty"}
+Schedule (trucks used/total per slot):
+${scheduledSummary||"empty"}
 ${currentJobBlock}
+Full slots (no-schedule): ${fullSlots.join(",")||"none"}
 
-RULES:
-- Never exceed ${PARAMS.totaltrucks} trucks in any single time slot
-- Jobs that already start at optimal times should stay put
-- Suggest specific moves: which job, from where, to where, and why
-- If a job fits better on a different day or time slot, suggest the move
-- A move must result in measurably better profit, gap utilization, or balance
-- Maximum 8 move suggestions
-- If schedule is already optimal, return empty moves array
+Priorities: 1)profit 2)fill gaps 3)balance. Max 6 moves. Skip moves with no clear benefit.
+Rules: never exceed truck limit; suggestion 3+ must be conflict-free.
 
-Return exactly this JSON (no markdown):
-{"summary":"2-3 sentence overview of current schedule state and what optimization achieves","moves":[
-  {"jobId":"ID","jobName":"Name","fromDate":"2026-06-06","fromHour":8,"toDate":"2026-06-09","toHour":10,"reason":"Why this move improves the schedule","profitImpact":"positive|neutral|negative","assignedTechs":["Name1"]}
-]}`;
+Return ONLY: {"s":"1 sentence summary","m":[{"id":"jobId","n":"jobName","fd":"2026-06-06","fh":8,"td":"2026-06-09","th":10,"r":"reason <12 words","p":"pos|neu|neg","t":["tech1"]}]}`;
 
   try{
     const res = await fetch(`${getProxyUrl()}/ai/schedule`,{
-      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({prompt})
+      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({prompt, max_tokens:3000})
     });
     if(!res.ok){ const t=await res.text(); throw new Error(`Server ${res.status}: ${t.slice(0,200)}`); }
     const data = await res.json();
     if(data.error) throw new Error(data.error);
     const text = (data.content||[]).map(c=>c.text||"").join("");
-    const parsed = JSON.parse(text.replace(/```json|```/g,"").trim());
+    // Handle truncated JSON by attempting to recover incomplete arrays
+    let cleanText = text.replace(/```json|```/g,"").trim();
+    // If JSON is truncated, try to close it gracefully
+    if(!cleanText.endsWith("}")){
+      // Find last complete move object and close the array/object
+      const lastBrace = cleanText.lastIndexOf("}");
+      if(lastBrace > 0) cleanText = cleanText.slice(0, lastBrace+1) + "]}";
+    }
+    const parsed = JSON.parse(cleanText);
 
-    optimizerMoves = (parsed.moves||[]).map(m=>({
-      ...m,
-      fromKey: `${m.fromDate}-${m.fromHour}`,
-      toKey:   `${m.toDate}-${m.toHour}`,
-      fromLabel: `${new Date(m.fromDate+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} @ ${fmtHour(m.fromHour)}`,
-      toLabel:   `${new Date(m.toDate+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} @ ${fmtHour(m.toHour)}`,
-      approved: null, // null=pending, true=approved, false=rejected
+    optimizerMoves = (parsed.m||parsed.moves||[]).map(m=>({
+      jobId:    m.id||m.jobId||"",
+      jobName:  m.n||m.jobName||"",
+      fromDate: m.fd||m.fromDate||"",
+      fromHour: m.fh!=null?m.fh:m.fromHour,
+      toDate:   m.td||m.toDate||"",
+      toHour:   m.th!=null?m.th:m.toHour,
+      reason:   m.r||m.reason||"",
+      profitImpact: m.p||m.profitImpact||"neutral",
+      assignedTechs: m.t||m.assignedTechs||[],
+      fromKey:  `${m.fd||m.fromDate}-${m.fh!=null?m.fh:m.fromHour}`,
+      toKey:    `${m.td||m.toDate}-${m.th!=null?m.th:m.toHour}`,
+      fromLabel:`${new Date((m.fd||m.fromDate)+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} @ ${fmtHour(m.fh!=null?m.fh:m.fromHour)}`,
+      toLabel:  `${new Date((m.td||m.toDate)+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} @ ${fmtHour(m.th!=null?m.th:m.toHour)}`,
+      approved: null,
     }));
 
-    renderOptimizerPanel(parsed.summary||"");
+    renderOptimizerPanel(parsed.s||parsed.summary||"");
   } catch(e){
     console.error("Optimizer error:", e.message, e.stack);
     document.getElementById("optimizer-panel").style.display="block";
