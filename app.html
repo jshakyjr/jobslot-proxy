@@ -1201,129 +1201,117 @@ async function optimizeSchedule(){
   const btn = document.getElementById("optimize-btn");
   btn.disabled=true; btn.textContent="🤖 Analyzing...";
 
-  // Show optimizer panel immediately with loading state — don't switch tabs
+  // Show loading state immediately
   document.getElementById("optimizer-panel").style.display="block";
-  document.getElementById("optimizer-summary").innerHTML='<span style="color:#7dd3fc" class="pulse">🤖 Analyzing schedule within window — this may take a few seconds...</span>';
+  document.getElementById("optimizer-summary").innerHTML='<span style="color:#7dd3fc" class="pulse">🤖 Analyzing schedule within window...</span>';
   document.getElementById("optimizer-moves-list").innerHTML="";
   document.getElementById("optimizer-no-moves").style.display="none";
   document.getElementById("optimizer-move-count").textContent="...";
-  // Show schedule view but keep split layout so optimizer is visible alongside calendar
+
+  // Switch to schedule view, keep split so right panel shows
   ["add","params"].forEach(x=>{ const el=document.getElementById("tab-"+x); if(el) el.style.display="none"; });
   document.querySelectorAll(".tab-btn").forEach((b,i)=>b.classList.toggle("active",i===2));
-  // Keep split layout — optimizer panel in right panel needs to be visible
   document.getElementById("main-area").className="main split";
   document.getElementById("left-panel").style.display="none";
 
-  // Build current job in form (if checkbox ticked and form has data)
-  let currentJob = null;
-  if(includeCurrentJob){
-    const name = document.getElementById("job-name").value.trim();
-    const address = document.getElementById("job-address").value.trim();
-    const revenue = lineItems.reduce((s,i)=>s+Number(i.cost||0),0);
-    const svc = document.getElementById("job-service").value;
-    if(name){
-      currentJob = {
-        id: "pending-"+Date.now(), name, service: svc, address,
-        estimatedHours: parseFloat(document.getElementById("job-hours").value)||2,
-        distanceMiles: parseFloat(document.getElementById("job-miles").value)||0,
-        preferredDay: document.getElementById("job-pref-day").value,
-        preferredTime: document.getElementById("job-pref-time").value,
-        revenue, lineItems:[...lineItems],
-        costPerManHour: JOB_TYPE_RATES[svc]||75,
-      };
-    }
-  }
-
-  // Get all jobs scheduled within the window
-  const winStart = new Date(win.start+"T00:00:00");
-  const winEnd   = new Date(win.end+"T23:59:59");
-
-  // Collect all scheduled jobs in window
-  const windowSchedule = []; // {job, key, dateStr, hour}
-  Object.entries(schedule).forEach(([key, ids])=>{
-    // key format: YYYY-MM-DD-H or DAY-H
-    const parts = key.split("-");
-    let dateStr=null, hour=null;
-    if(parts.length===4){ dateStr=parts.slice(0,3).join("-"); hour=parseInt(parts[3]); }
-    else if(parts.length===2){ hour=parseInt(parts[1]); } // day-key fallback
-    if(dateStr){
-      const d=new Date(dateStr+"T12:00:00");
-      if(d>=winStart && d<=winEnd){
-        (ids||[]).forEach(id=>{
-          const job=getJobById(id);
-          if(job) windowSchedule.push({job, key, dateStr, hour});
-        });
+  try {
+    // Optional current job from form
+    let currentJobBlock = "";
+    if(includeCurrentJob){
+      const name = document.getElementById("job-name").value.trim();
+      if(name){
+        const svc = document.getElementById("job-service").value;
+        const rev = lineItems.reduce((s,i)=>s+Number(i.cost||0),0);
+        const hrs = parseFloat(document.getElementById("job-hours").value)||2;
+        const mi  = parseFloat(document.getElementById("job-miles").value)||0;
+        const profit = rev - hrs*PARAMS.labor*PARAMS.crew - mi*2*PARAMS.fuel;
+        currentJobBlock = "\nUNSCHEDULED: "+name+"|"+svc+"|"+hrs+"h|$"+profit.toFixed(0)+"p";
       }
     }
-  });
 
-  if(!windowSchedule.length && !currentJob){
-    btn.disabled=false; btn.textContent="🔧 Optimize Schedule";
-    document.getElementById("optimizer-panel").style.display="block";
-    document.getElementById("optimizer-summary").textContent="No jobs scheduled in this window to optimize.";
-    document.getElementById("optimizer-moves-list").innerHTML="";
-    document.getElementById("optimizer-no-moves").style.display="block";
-    document.getElementById("optimizer-move-count").textContent="0";
-    return;
-  }
+    // Collect jobs in window
+    const winStart = new Date(win.start+"T00:00:00");
+    const winEnd   = new Date(win.end+"T23:59:59");
+    const slotTruckCount = {};
+    const windowJobs = [];
 
-  // Build truck usage per slot in window
-  const slotTruckCount={};
-  Object.entries(schedule).forEach(([key,ids])=>{ slotTruckCount[key]=(ids||[]).length; });
+    Object.entries(schedule).forEach(([key, ids])=>{
+      const parts = key.split("-");
+      if(parts.length < 4) return; // skip DAY-H style keys
+      const dateStr = parts.slice(0,3).join("-");
+      const hour = parseInt(parts[3]);
+      const d = new Date(dateStr+"T12:00:00");
+      if(isNaN(d)) return;
+      slotTruckCount[key] = (ids||[]).length;
+      if(d >= winStart && d <= winEnd){
+        (ids||[]).forEach(id=>{
+          const job=getJobById(id);
+          if(job) windowJobs.push({job, key, dateStr, hour});
+        });
+      }
+    });
 
-  // Ultra-compact schedule summary to minimize tokens
-  const scheduledSummary = windowSchedule.map(({job,key,dateStr,hour})=>{
-    const t = slotTruckCount[key]||0;
-    const svcAbbr = job.service.split(" ").map(w=>w[0]).join(""); // e.g. "PW","SW","IWC"
-    return `${dateStr} ${hour}h [${t}T] ${job.name}|${svcAbbr}|${job.estimatedHours}h|$${calcProfit(job).toFixed(0)}p`;
-  }).join("\n");
+    console.log("Optimizer: "+windowJobs.length+" jobs in window, "+Object.keys(schedule).length+" total slots");
 
-  const availTechs=TECHS.filter(t=>t.available&&t.name);
-  const rateContext=SERVICE_TYPES.map(s=>`  ${s}: $${JOB_TYPE_RATES[s]||75}/man hr`).join("\n");
+    if(!windowJobs.length && !currentJobBlock){
+      document.getElementById("optimizer-summary").textContent="No jobs scheduled in this window to optimize.";
+      document.getElementById("optimizer-no-moves").style.display="block";
+      document.getElementById("optimizer-move-count").textContent="0";
+      btn.disabled=false; btn.textContent="🔧 Optimize Schedule";
+      return;
+    }
 
-  const currentJobBlock = currentJob
-    ? `\nUNSCHEDULED: ${currentJob.name}|${currentJob.service}|${currentJob.estimatedHours}h|$${calcProfit(currentJob).toFixed(0)}p|${currentJob.address}`
-    : "";
+    // Build full slot list
+    const fullSlots = Object.entries(slotTruckCount).filter(([,c])=>c>=PARAMS.totaltrucks).map(([k])=>k);
+    const availTechs = TECHS.filter(t=>t.available&&t.name);
 
-  const prompt = `Schedule optimizer. JSON only, no prose.
+    // Compact schedule summary — cap at 30 jobs to limit tokens
+    const summaryLines = windowJobs.slice(0,30).map(({job,key,dateStr,hour})=>{
+      const t = slotTruckCount[key]||0;
+      const abbr = job.service.split(" ").map(w=>w[0]).join("");
+      const profit = calcProfit(job).toFixed(0);
+      return dateStr+" "+hour+"h["+t+"T] "+job.name+"|"+abbr+"|"+job.estimatedHours+"h|$"+profit+"p";
+    }).join("\n");
 
-Params: labor $${PARAMS.labor}/hr, crew ${PARAMS.crew}, trucks ${PARAMS.totaltrucks} (hard limit), techs ${PARAMS.totaltechs}, day ${fmtHour(PARAMS.start)}-${fmtHour(PARAMS.end)}
-Window: ${win.start} to ${win.end}
-Techs: ${availTechs.map(t=>t.name+(t.canDrive?"*":"")).join(",")||"none"} (*=driver)
-Rates: ${SERVICE_TYPES.map(s=>`${s.split(" ")[0]}=$${JOB_TYPE_RATES[s]||75}`).join(",")}
+    const rates = SERVICE_TYPES.map(s=>s.split(" ")[0]+"=$"+( JOB_TYPE_RATES[s]||75)).join(",");
+    const techList = availTechs.map(t=>t.name+(t.canDrive?"*":"")).join(",")||"none";
 
-Schedule (trucks used/total per slot):
-${scheduledSummary||"empty"}
-${currentJobBlock}
-Full slots (no-schedule): ${fullSlots.join(",")||"none"}
+    const prompt = "Schedule optimizer. JSON only.\n"
+      + "Trucks:"+PARAMS.totaltrucks+"(hard) Techs:"+PARAMS.totaltechs+" Crew/job:"+PARAMS.crew+" Day:"+fmtHour(PARAMS.start)+"-"+fmtHour(PARAMS.end)+"\n"
+      + "Window:"+win.start+" to "+win.end+"\n"
+      + "Techs:"+techList+" (*=driver)\n"
+      + "Rates:"+rates+"\n"
+      + "FullSlots:"+( fullSlots.slice(0,10).join(",")||"none")+"\n"
+      + "Schedule:\n"+summaryLines
+      + currentJobBlock+"\n"
+      + "Priorities:1)profit 2)gaps 3)balance. Max 5 moves. No move if no clear benefit.\n"
+      + "Never exceed truck limit. Moves must improve schedule.\n"
+      + 'Return ONLY: {"s":"summary 1 sentence","m":[{"id":"jobId","n":"name","fd":"2026-06-06","fh":8,"td":"2026-06-09","th":10,"r":"reason","p":"pos|neu|neg","t":["tech"]}]}';
 
-Priorities: 1)profit 2)fill gaps 3)balance. Max 6 moves. Skip moves with no clear benefit.
-Rules: never exceed truck limit; suggestion 3+ must be conflict-free.
+    console.log("Optimizer prompt length:", prompt.length, "chars");
 
-Return ONLY: {"s":"1 sentence summary","m":[{"id":"jobId","n":"jobName","fd":"2026-06-06","fh":8,"td":"2026-06-09","th":10,"r":"reason <12 words","p":"pos|neu|neg","t":["tech1"]}]}`;
-
-  try{
     const controller = new AbortController();
-    const timeout = setTimeout(()=>controller.abort(), 90000); // 90s timeout
+    const timeoutId = setTimeout(()=>controller.abort(), 90000);
     let res;
     try {
-      res = await fetch(`${getProxyUrl()}/ai/schedule`,{
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({prompt, max_tokens:2000}),
-        signal: controller.signal
+      res = await fetch(getProxyUrl()+"/ai/schedule", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({prompt, max_tokens:1200}),
+        signal:controller.signal
       });
-    } finally { clearTimeout(timeout); }
-    if(!res.ok){ const t=await res.text(); throw new Error(`Server ${res.status}: ${t.slice(0,200)}`); }
+    } finally { clearTimeout(timeoutId); }
+
+    if(!res.ok){ const t=await res.text(); throw new Error("Server "+res.status+": "+t.slice(0,200)); }
     const data = await res.json();
     if(data.error) throw new Error(data.error);
     const text = (data.content||[]).map(c=>c.text||"").join("");
-    // Handle truncated JSON by attempting to recover incomplete arrays
+    console.log("Optimizer response:", text.slice(0,200));
+
     let cleanText = text.replace(/```json|```/g,"").trim();
-    // If JSON is truncated, try to close it gracefully
-    if(!cleanText.endsWith("}")){
-      // Find last complete move object and close the array/object
-      const lastBrace = cleanText.lastIndexOf("}");
-      if(lastBrace > 0) cleanText = cleanText.slice(0, lastBrace+1) + "]}";
+    if(!cleanText.endsWith("}")) {
+      const last = cleanText.lastIndexOf("}");
+      if(last>0) cleanText = cleanText.slice(0,last+1)+"]}";
     }
     const parsed = JSON.parse(cleanText);
 
@@ -1331,25 +1319,25 @@ Return ONLY: {"s":"1 sentence summary","m":[{"id":"jobId","n":"jobName","fd":"20
       jobId:    m.id||m.jobId||"",
       jobName:  m.n||m.jobName||"",
       fromDate: m.fd||m.fromDate||"",
-      fromHour: m.fh!=null?m.fh:m.fromHour,
+      fromHour: m.fh!=null?m.fh:(m.fromHour||0),
       toDate:   m.td||m.toDate||"",
-      toHour:   m.th!=null?m.th:m.toHour,
+      toHour:   m.th!=null?m.th:(m.toHour||0),
       reason:   m.r||m.reason||"",
       profitImpact: m.p||m.profitImpact||"neutral",
       assignedTechs: m.t||m.assignedTechs||[],
-      fromKey:  `${m.fd||m.fromDate}-${m.fh!=null?m.fh:m.fromHour}`,
-      toKey:    `${m.td||m.toDate}-${m.th!=null?m.th:m.toHour}`,
-      fromLabel:`${new Date((m.fd||m.fromDate)+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} @ ${fmtHour(m.fh!=null?m.fh:m.fromHour)}`,
-      toLabel:  `${new Date((m.td||m.toDate)+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} @ ${fmtHour(m.th!=null?m.th:m.toHour)}`,
+      fromKey:  (m.fd||m.fromDate)+"-"+(m.fh!=null?m.fh:m.fromHour),
+      toKey:    (m.td||m.toDate)+"-"+(m.th!=null?m.th:m.toHour),
+      fromLabel: new Date((m.fd||m.fromDate)+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+" @ "+fmtHour(m.fh!=null?m.fh:m.fromHour),
+      toLabel:   new Date((m.td||m.toDate)+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+" @ "+fmtHour(m.th!=null?m.th:m.toHour),
       approved: null,
     }));
 
     renderOptimizerPanel(parsed.s||parsed.summary||"");
-  } catch(e){
+
+  } catch(e) {
     console.error("Optimizer error:", e.message, e.stack);
-    const errMsg = e.name==="AbortError" ? "Request timed out after 90s — server may be starting up, try again in 30 seconds." : e.message;
-    document.getElementById("optimizer-panel").style.display="block";
-    document.getElementById("optimizer-summary").innerHTML=`<span style="color:#f87171">⚠ ${errMsg}</span>`;
+    const msg = e.name==="AbortError" ? "Timed out — server may be starting up, try again in 30s." : e.message;
+    document.getElementById("optimizer-summary").innerHTML='<span style="color:#f87171">⚠ '+msg+'</span>';
     document.getElementById("optimizer-moves-list").innerHTML="";
     document.getElementById("optimizer-no-moves").style.display="none";
     document.getElementById("optimizer-move-count").textContent="0";
@@ -1357,6 +1345,7 @@ Return ONLY: {"s":"1 sentence summary","m":[{"id":"jobId","n":"jobName","fd":"20
 
   btn.disabled=false; btn.textContent="🔧 Optimize Schedule";
 }
+
 
 function renderOptimizerPanel(summary){
   document.getElementById("optimizer-panel").style.display="block";
