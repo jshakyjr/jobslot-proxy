@@ -1303,9 +1303,16 @@ Rules: never exceed truck limit; suggestion 3+ must be conflict-free.
 Return ONLY: {"s":"1 sentence summary","m":[{"id":"jobId","n":"jobName","fd":"2026-06-06","fh":8,"td":"2026-06-09","th":10,"r":"reason <12 words","p":"pos|neu|neg","t":["tech1"]}]}`;
 
   try{
-    const res = await fetch(`${getProxyUrl()}/ai/schedule`,{
-      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({prompt, max_tokens:3000})
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(()=>controller.abort(), 90000); // 90s timeout
+    let res;
+    try {
+      res = await fetch(`${getProxyUrl()}/ai/schedule`,{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({prompt, max_tokens:2000}),
+        signal: controller.signal
+      });
+    } finally { clearTimeout(timeout); }
     if(!res.ok){ const t=await res.text(); throw new Error(`Server ${res.status}: ${t.slice(0,200)}`); }
     const data = await res.json();
     if(data.error) throw new Error(data.error);
@@ -1340,8 +1347,9 @@ Return ONLY: {"s":"1 sentence summary","m":[{"id":"jobId","n":"jobName","fd":"20
     renderOptimizerPanel(parsed.s||parsed.summary||"");
   } catch(e){
     console.error("Optimizer error:", e.message, e.stack);
+    const errMsg = e.name==="AbortError" ? "Request timed out after 90s — server may be starting up, try again in 30 seconds." : e.message;
     document.getElementById("optimizer-panel").style.display="block";
-    document.getElementById("optimizer-summary").innerHTML=`<span style="color:#f87171">⚠ Optimizer error: ${e.message}</span><br><span style="font-size:10px;color:#475569">Check browser console for details.</span>`;
+    document.getElementById("optimizer-summary").innerHTML=`<span style="color:#f87171">⚠ ${errMsg}</span>`;
     document.getElementById("optimizer-moves-list").innerHTML="";
     document.getElementById("optimizer-no-moves").style.display="none";
     document.getElementById("optimizer-move-count").textContent="0";
