@@ -430,7 +430,7 @@
 <script>
 const PASSWORD = "PristineSchedule";
 const PROXY_URL = "https://jobslot-proxy.onrender.com";
-const ALL_DAYS = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
+const ALL_DAYS = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
 const SLOT_HOURS = [7,8,9,10,11,12,13,14,15,16,17];
 const DAY_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -818,7 +818,8 @@ async function runAI(job){
 Business parameters:
 - Labor: $${PARAMS.labor}/hr/person, Crew size: ${PARAMS.crew}, Total crews: ${PARAMS.totalcrews}
 - Fuel: $${PARAMS.fuel}/mile, Workday: ${fmtHour(PARAMS.start)}–${fmtHour(PARAMS.end)}
-- 7-day week (Mon–Sun scheduling available)
+- 7-day week (Sun–Sat, week starts on Sunday)
+- IMPORTANT: Day names must exactly match the date provided. June 6 2026 is a Saturday. Always verify day name matches the date.
 - SCHEDULING WINDOW: ${win.start} to ${win.end} (${win.label})
 - Total crews available: ${PARAMS.totalcrews} — a slot is FULL when it already has ${PARAMS.totalcrews} jobs
 - Available technicians: ${availTechs.length} — a slot has a TECH CONFLICT if all available techs are already assigned
@@ -856,6 +857,7 @@ Rules:
 - Consider 7-day week; weekends for overflow or client preference
 
 All suggestion dates must fall between ${win.start} and ${win.end}.
+CRITICAL: The "day" field must be the correct day of week for the "date" field. Derive the day name FROM the date — do not guess. Example: 2026-06-06 = Saturday, 2026-06-07 = Sunday, 2026-06-08 = Monday.
 Return exactly this JSON (no markdown, no extra text):
 {"suggestions":[
   {"day":"Monday","date":"${win.start}","startHour":9,"reason":"2 sentence explanation","profitScore":85,"driveScore":72,"preferenceScore":60,"warnings":[],"assignedTechs":["Name1","Name2"]},
@@ -906,7 +908,7 @@ function showSuggestions(job){
     card.innerHTML=`
       <div class="rank">#${i+1}</div>
       ${i===2?`<div style="font-size:9px;font-weight:700;color:#4ade80;margin-bottom:2px">✓ GUARANTEED OPEN${s.date&&s.date>_win.end?" · FUTURE DATE":""}</div>`:"" }
-      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:${i===2&&s.date&&s.date>_win.end?"#fbbf24":"#38bdf8"};margin-bottom:2px;padding-right:24px">${s.day}${s.date?` · ${new Date(s.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}`:""}
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:${i===2&&s.date&&s.date>_win.end?"#fbbf24":"#38bdf8"};margin-bottom:2px;padding-right:24px">${s.date?new Date(s.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric",year:"numeric"}):s.day}
 </div>
       <div style="font-size:11px;color:#94a3b8;margin-bottom:6px">${fmtHour(s.startHour)} · Score: ${totalScore}/100</div>
       <p style="font-size:10px;color:#64748b;line-height:1.4;margin-bottom:7px">${s.reason}</p>
@@ -963,18 +965,18 @@ function renderMonthView(){
 
   // Header
   const hdr=document.createElement("div"); hdr.className="month-header";
-  ["MON","TUE","WED","THU","FRI","SAT","SUN"].forEach(d=>{
+  ["SUN","MON","TUE","WED","THU","FRI","SAT"].forEach(d=>{
     const c=document.createElement("div"); c.className="month-header-cell"; c.textContent=d; hdr.appendChild(c);
   });
   grid.appendChild(hdr);
 
   // Build calendar weeks
   const firstDay=new Date(viewYear,viewMonth,1);
-  // Start from Monday of the week containing the 1st
+  // Start from Sunday of the week containing the 1st
   let startMon=new Date(firstDay);
   const dow=firstDay.getDay(); // 0=Sun
-  const diffToMon=dow===0?-6:1-dow;
-  startMon.setDate(firstDay.getDate()+diffToMon);
+  const diffToSun=dow===0?0:-dow; // back to Sunday
+  startMon.setDate(firstDay.getDate()+diffToSun);
 
   const today=new Date(); today.setHours(0,0,0,0);
 
@@ -990,7 +992,7 @@ function renderMonthView(){
     row.onclick=()=>toggleWeekExpand(weekKey,weekStart);
 
     for(let d=0;d<7;d++){
-      const day=new Date(weekStart); day.setDate(weekStart.getDate()+d);
+      const day=new Date(weekStart); day.setDate(weekStart.getDate()+d); // d=0 is Sunday
       const dateStr=day.toISOString().split("T")[0];
       const isThisMonth=day.getMonth()===viewMonth;
       const isToday=day.getTime()===today.getTime();
@@ -1046,7 +1048,7 @@ function renderWeekExpand(weekStartOrStr){
   const dates=[];
   for(let d=0;d<7;d++){
     const day=new Date(weekStart); day.setDate(weekStart.getDate()+d);
-    dates.push({date:day,dateStr:day.toISOString().split("T")[0],dayShort:["SUN","MON","TUE","WED","THU","FRI","SAT"][day.getDay()],label:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][d]});
+    dates.push({date:day,dateStr:day.toISOString().split("T")[0],dayShort:["SUN","MON","TUE","WED","THU","FRI","SAT"][day.getDay()],label:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d]});
   }
   const startDate=dates[0].date;
   const endDate=dates[6].date;
