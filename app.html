@@ -854,6 +854,38 @@ async function runAI(job){
   const rateContext=SERVICE_TYPES.map(s=>`  ${s}: $${JOB_TYPE_RATES[s]||75}/man hr`).join("\n");
 
   const win=getWindowDates();
+
+  // Calculate guaranteed conflict-free slot client-side
+  // So AI doesn't have to guess — we hand it the exact date/hour
+  function findGuaranteedSlot(){
+    const start = new Date(win.start+"T12:00:00");
+    // Search from window start, then continue past window end if needed
+    for(let offset=0; offset<90; offset++){
+      const d = new Date(start);
+      d.setDate(start.getDate()+offset);
+      const dateStr = d.toISOString().split("T")[0];
+      // Check each hour in workday
+      for(let h=PARAMS.start; h<=PARAMS.end-job.estimatedHours; h++){
+        const key = dateStr+"-"+h;
+        const trucksUsed = (schedule[key]||[]).length;
+        if(trucksUsed < PARAMS.totaltrucks){
+          // Check tech availability — need at least crew size techs, 1 driver
+          const availTechs = TECHS.filter(t=>t.available&&t.name);
+          const drivers = availTechs.filter(t=>t.canDrive);
+          if(availTechs.length >= PARAMS.crew && drivers.length >= 1){
+            const dayName = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d.getDay()];
+            return {dateStr, hour:h, dayName, trucksUsed, beyondWindow: dateStr > win.end};
+          }
+        }
+      }
+    }
+    return null;
+  }
+  const guaranteedSlot = findGuaranteedSlot();
+  const guaranteedNote = guaranteedSlot
+    ? "SUGGESTION 3 MUST USE: "+guaranteedSlot.dayName+" "+guaranteedSlot.dateStr+" @ "+fmtHour(guaranteedSlot.hour)+" — this is the verified next conflict-free slot ("+guaranteedSlot.trucksUsed+"/"+PARAMS.totaltrucks+" trucks used). Do not pick a different date for suggestion 3."
+    : "No conflict-free slot found in next 90 days.";
+
   const prompt=`You are a field service scheduling optimizer. Return ONLY valid JSON, no other text.
 
 Business parameters:
@@ -872,7 +904,7 @@ SCHEDULING RULES — follow strictly:
 - RULE 1 (HARD): Never suggest a slot that is truck-full. Trucks are the absolute constraint.
 - RULE 2 (SOFT): Prefer slots with enough available techs (at least ${PARAMS.crew} techs needed, at least 1 must be a driver).
 - RULE 3: Suggestions 1 & 2 should be within the scheduling window, optimizing profit/drive/preference while respecting truck limits.
-- RULE 4 (GUARANTEED FALLBACK): Suggestion 3 MUST be a slot with zero conflicts — no truck shortage, no tech shortage, at least 1 driver free. Search beyond ${win.end} if the window is full. Label it in the reason as the guaranteed open slot.
+- RULE 4 (GUARANTEED FALLBACK): ${guaranteedNote}
 
 Available technicians (${availTechs.length} available):
 ${availTechs.map(t=>`  ${t.name} ${t.canDrive?"(driver)":"(no drive)"}`).join("\n")||"  None listed"}
@@ -918,8 +950,22 @@ Return exactly this JSON (no markdown, no extra text):
     const text=(data.content||[]).map(c=>c.text||"").join("");
     const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
     currentSuggestions=parsed.suggestions||[];
+    // Override suggestion 3 with guaranteed slot if AI picked wrong date
+    if(currentSuggestions.length>=3 && guaranteedSlot){
+      const s3 = currentSuggestions[2];
+      if(s3.date !== guaranteedSlot.dateStr || s3.startHour !== guaranteedSlot.hour){
+        currentSuggestions[2] = {
+          ...s3,
+          day: guaranteedSlot.dayName,
+          date: guaranteedSlot.dateStr,
+          startHour: guaranteedSlot.hour,
+          reason: s3.reason+" (Slot verified conflict-free: "+guaranteedSlot.trucksUsed+"/"+PARAMS.totaltrucks+" trucks used.)",
+        };
+      }
+    }
     selectedSuggestionIdx=0;
     job._window=win;
+    job._guaranteedSlot=guaranteedSlot;
     showSuggestions(job);
   }catch(e){
     const msg=e?.message||JSON.stringify(e)||"Unknown error";
