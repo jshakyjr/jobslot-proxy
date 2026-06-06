@@ -331,8 +331,12 @@
           <input type="range" min="1" max="10" value="2" id="p-crew" oninput="updateParam('crew',this.value)">
         </div>
         <div class="range-row">
-          <div class="range-header"><label class="label" style="margin:0">TOTAL AVAILABLE CREWS</label><span id="lbl-totalcrews" style="font-size:11px;font-weight:600">5</span></div>
-          <input type="range" min="1" max="20" value="5" id="p-totalcrews" oninput="updateParam('totalcrews',this.value)">
+          <div class="range-header"><label class="label" style="margin:0">TOTAL AVAILABLE TRUCKS</label><span id="lbl-totaltrucks" style="font-size:11px;font-weight:600">5</span></div>
+          <input type="range" min="1" max="20" value="5" id="p-totaltrucks" oninput="updateParam('totaltrucks',this.value)">
+        </div>
+        <div class="range-row">
+          <div class="range-header"><label class="label" style="margin:0">TOTAL AVAILABLE TECHS</label><span id="lbl-totaltechs" style="font-size:11px;font-weight:600">10</span></div>
+          <input type="range" min="1" max="40" value="10" id="p-totaltechs" oninput="updateParam('totaltechs',this.value)">
         </div>
         <div class="range-row">
           <div class="range-header"><label class="label" style="margin:0">FUEL COST ($/MILE)</label><span id="lbl-fuel" style="font-size:11px;font-weight:600">$0.21</span></div>
@@ -467,7 +471,7 @@ function saveParams(){ _lsSave("kip_params2",PARAMS); }
 function saveRates(){ _lsSave("kip_rates2",JOB_TYPE_RATES); }
 function saveTechs(){ _lsSave("kip_techs",TECHS); }
 
-const PARAMS = Object.assign({labor:65,crew:2,totalcrews:5,fuel:0.21,start:7,end:18,baseAddress:"",proxyUrl:""}, _ls("kip_params2")||{});
+const PARAMS = Object.assign({labor:65,crew:2,totaltrucks:5,totaltechs:10,fuel:0.21,start:7,end:18,baseAddress:"",proxyUrl:""}, _ls("kip_params2")||{});
 const JOB_TYPE_RATES = Object.assign({}, JOB_TYPE_RATE_DEFAULTS, _ls("kip_rates2")||{});
 const TECHS = _ls("kip_techs") || [{name:"",canDrive:true,available:true}];
 
@@ -528,7 +532,7 @@ function updateParam(k,v){
   if(k==="baseAddress"){ PARAMS.baseAddress=v; saveParams(); return; }
   if(k==="proxyUrl"){ PARAMS.proxyUrl=v; saveParams(); return; }
   PARAMS[k]=parseFloat(v);
-  const labels={labor:`$${v}`,crew:v,totalcrews:v,fuel:`$${parseFloat(v).toFixed(2)}`,start:fmtHour(parseInt(v)),end:fmtHour(parseInt(v))};
+  const labels={labor:`$${v}`,crew:v,totaltrucks:v,totaltechs:v,fuel:`$${parseFloat(v).toFixed(2)}`,start:fmtHour(parseInt(v)),end:fmtHour(parseInt(v))};
   const el=document.getElementById("lbl-"+k);
   if(el) el.textContent=labels[k];
   updateProfitPreview(); saveParams();
@@ -794,18 +798,18 @@ async function runAI(job){
   document.getElementById("suggestions-area").style.display="none";
 
   // Build schedule summary — include crew count per slot so AI knows when slots are full
-  const slotCrewCount = {}; // key -> number of jobs (proxy for crews used)
-  Object.entries(schedule).forEach(([key,ids])=>{ slotCrewCount[key]=(ids||[]).length; });
+  const slotTruckCount = {}; // key -> trucks in use (1 job = 1 truck)
+  Object.entries(schedule).forEach(([key,ids])=>{ slotTruckCount[key]=(ids||[]).length; });
 
   const scheduledSummary=Object.entries(schedule).slice(0,80).map(([key,ids])=>{
     const names=(ids||[]).map(id=>{const j=getJobById(id);return j?j.name:null}).filter(Boolean).join(", ");
-    const crewsUsed=(ids||[]).length;
-    return names?`${key} [${crewsUsed}/${PARAMS.totalcrews} crews]: ${names}`:null;
+    const trucksUsed=(ids||[]).length;
+    return names?`${key} [${trucksUsed}/${PARAMS.totaltrucks} trucks]: ${names}`:null;
   }).filter(Boolean).join("\n");
 
-  // Find slots that are fully booked (crews used >= totalcrews)
-  const fullSlots=Object.entries(slotCrewCount)
-    .filter(([,cnt])=>cnt>=PARAMS.totalcrews)
+  // Slots where all trucks are already deployed — HARD BLOCK, cannot schedule anything here
+  const fullSlots=Object.entries(slotTruckCount)
+    .filter(([,cnt])=>cnt>=PARAMS.totaltrucks)
     .map(([key])=>key);
 
   const availTechs=TECHS.filter(t=>t.available&&t.name);
@@ -816,18 +820,22 @@ async function runAI(job){
   const prompt=`You are a field service scheduling optimizer. Return ONLY valid JSON, no other text.
 
 Business parameters:
-- Labor: $${PARAMS.labor}/hr/person, Crew size: ${PARAMS.crew}, Total crews: ${PARAMS.totalcrews}
+- Labor: $${PARAMS.labor}/hr/person, Crew size per job: ${PARAMS.crew}
+- Total trucks: ${PARAMS.totaltrucks} — ABSOLUTE HARD LIMIT. If all trucks are deployed in a time slot, nothing can be scheduled there. No exceptions.
+- Total techs: ${PARAMS.totaltechs} — secondary constraint used for tech assignment optimization
 - Fuel: $${PARAMS.fuel}/mile, Workday: ${fmtHour(PARAMS.start)}–${fmtHour(PARAMS.end)}
 - 7-day week (Sun–Sat, week starts on Sunday)
 - IMPORTANT: Day names must exactly match the date provided. June 6 2026 is a Saturday. Always verify day name matches the date.
 - SCHEDULING WINDOW: ${win.start} to ${win.end} (${win.label})
-- Total crews available: ${PARAMS.totalcrews} — a slot is FULL when it already has ${PARAMS.totalcrews} jobs
-- Available technicians: ${availTechs.length} — a slot has a TECH CONFLICT if all available techs are already assigned
-- Fully booked slots (DO NOT USE for any suggestion): ${fullSlots.join(", ")||"none"}
+- Total trucks: ${PARAMS.totaltrucks} — a slot is TRUCK-FULL when it already has ${PARAMS.totaltrucks} jobs. Truck-full slots CANNOT be used under any circumstances.
+- Total techs available: ${PARAMS.totaltechs}, currently available techs: ${availTechs.length}
+- Fully truck-booked slots (ABSOLUTE NO-GO — cannot schedule here): ${fullSlots.join(", ")||"none"}
 
-SUGGESTION RULES — follow strictly:
-1. Suggestions 1 & 2: best options within the window, optimizing profit/drive/preference. May have some crew load but must have at least 1 available tech and crew slot open.
-2. Suggestion 3 — GUARANTEED CONFLICT-FREE FALLBACK: This slot MUST have zero scheduling conflicts — crews available, at least 1 driver tech free, not in the fully booked list. Search beyond ${win.end} if needed. Never place suggestion 3 on a fully booked date/time. Label it in the reason as the guaranteed open slot.
+SCHEDULING RULES — follow strictly:
+- RULE 1 (HARD): Never suggest a slot that is truck-full. Trucks are the absolute constraint.
+- RULE 2 (SOFT): Prefer slots with enough available techs (at least ${PARAMS.crew} techs needed, at least 1 must be a driver).
+- RULE 3: Suggestions 1 & 2 should be within the scheduling window, optimizing profit/drive/preference while respecting truck limits.
+- RULE 4 (GUARANTEED FALLBACK): Suggestion 3 MUST be a slot with zero conflicts — no truck shortage, no tech shortage, at least 1 driver free. Search beyond ${win.end} if the window is full. Label it in the reason as the guaranteed open slot.
 
 Available technicians (${availTechs.length} available):
 ${availTechs.map(t=>`  ${t.name} ${t.canDrive?"(driver)":"(no drive)"}`).join("\n")||"  None listed"}
@@ -852,7 +860,7 @@ ${scheduledSummary||"Empty — no jobs scheduled yet"}
 
 Rules:
 - Multiple crews can work same time slot
-- Total concurrent jobs limited to ${PARAMS.totalcrews} crews
+- Total concurrent jobs limited to ${PARAMS.totaltrucks} trucks (hard limit) and ${PARAMS.totaltechs} techs (soft limit)
 - Assign techs from available list; need at least 1 driver per crew
 - Consider 7-day week; weekends for overflow or client preference
 
@@ -1182,8 +1190,8 @@ function getWindowDates(){
 // ── INIT ──────────────────────────────────────────────────────────────────────
 function initApp(){
   // Restore sliders
-  const sliderMap={labor:"p-labor",crew:"p-crew",totalcrews:"p-totalcrews",fuel:"p-fuel",start:"p-start",end:"p-end"};
-  const labelFmt={labor:v=>`$${v}`,crew:v=>v,totalcrews:v=>v,fuel:v=>`$${parseFloat(v).toFixed(2)}`,start:v=>fmtHour(parseInt(v)),end:v=>fmtHour(parseInt(v))};
+  const sliderMap={labor:"p-labor",crew:"p-crew",totaltrucks:"p-totaltrucks",totaltechs:"p-totaltechs",fuel:"p-fuel",start:"p-start",end:"p-end"};
+  const labelFmt={labor:v=>`$${v}`,crew:v=>v,totaltrucks:v=>v,totaltechs:v=>v,fuel:v=>`$${parseFloat(v).toFixed(2)}`,start:v=>fmtHour(parseInt(v)),end:v=>fmtHour(parseInt(v))};
   Object.entries(sliderMap).forEach(([k,id])=>{
     const el=document.getElementById(id); if(!el) return;
     el.value=PARAMS[k];
