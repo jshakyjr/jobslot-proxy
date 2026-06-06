@@ -793,11 +793,20 @@ async function runAI(job){
   document.getElementById("ai-banner").style.display="flex";
   document.getElementById("suggestions-area").style.display="none";
 
-  // Build compact schedule summary (last 3 months dates only — avoid huge prompt)
-  const scheduledSummary=Object.entries(schedule).slice(0,60).map(([key,ids])=>{
+  // Build schedule summary — include crew count per slot so AI knows when slots are full
+  const slotCrewCount = {}; // key -> number of jobs (proxy for crews used)
+  Object.entries(schedule).forEach(([key,ids])=>{ slotCrewCount[key]=(ids||[]).length; });
+
+  const scheduledSummary=Object.entries(schedule).slice(0,80).map(([key,ids])=>{
     const names=(ids||[]).map(id=>{const j=getJobById(id);return j?j.name:null}).filter(Boolean).join(", ");
-    return names?`${key}: ${names}`:null;
+    const crewsUsed=(ids||[]).length;
+    return names?`${key} [${crewsUsed}/${PARAMS.totalcrews} crews]: ${names}`:null;
   }).filter(Boolean).join("\n");
+
+  // Find slots that are fully booked (crews used >= totalcrews)
+  const fullSlots=Object.entries(slotCrewCount)
+    .filter(([,cnt])=>cnt>=PARAMS.totalcrews)
+    .map(([key])=>key);
 
   const availTechs=TECHS.filter(t=>t.available&&t.name);
   const driverTechs=availTechs.filter(t=>t.canDrive);
@@ -811,9 +820,13 @@ Business parameters:
 - Fuel: $${PARAMS.fuel}/mile, Workday: ${fmtHour(PARAMS.start)}–${fmtHour(PARAMS.end)}
 - 7-day week (Mon–Sun scheduling available)
 - SCHEDULING WINDOW: ${win.start} to ${win.end} (${win.label})
-- Suggestions 1 and 2 must fall within the scheduling window if any slots are available
-- Suggestion 3 (the fallback): if the window is fully booked or no good slot exists, look beyond ${win.end} into future weeks until a viable slot is found — label it clearly in the reason as a future overflow option
-- If the entire window is open, all 3 suggestions should be within the window
+- Total crews available: ${PARAMS.totalcrews} — a slot is FULL when it already has ${PARAMS.totalcrews} jobs
+- Available technicians: ${availTechs.length} — a slot has a TECH CONFLICT if all available techs are already assigned
+- Fully booked slots (DO NOT USE for any suggestion): ${fullSlots.join(", ")||"none"}
+
+SUGGESTION RULES — follow strictly:
+1. Suggestions 1 & 2: best options within the window, optimizing profit/drive/preference. May have some crew load but must have at least 1 available tech and crew slot open.
+2. Suggestion 3 — GUARANTEED CONFLICT-FREE FALLBACK: This slot MUST have zero scheduling conflicts — crews available, at least 1 driver tech free, not in the fully booked list. Search beyond ${win.end} if needed. Never place suggestion 3 on a fully booked date/time. Label it in the reason as the guaranteed open slot.
 
 Available technicians (${availTechs.length} available):
 ${availTechs.map(t=>`  ${t.name} ${t.canDrive?"(driver)":"(no drive)"}`).join("\n")||"  None listed"}
@@ -892,7 +905,7 @@ function showSuggestions(job){
     const totalScore=Math.round((s.profitScore+s.driveScore+s.preferenceScore)/3);
     card.innerHTML=`
       <div class="rank">#${i+1}</div>
-      ${i===2&&s.date&&s.date>_win.end?`<div style="font-size:9px;font-weight:700;color:#fbbf24;margin-bottom:2px">📅 FUTURE OVERFLOW</div>`:""}
+      ${i===2?`<div style="font-size:9px;font-weight:700;color:#4ade80;margin-bottom:2px">✓ GUARANTEED OPEN${s.date&&s.date>_win.end?" · FUTURE DATE":""}</div>`:"" }
       <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:${i===2&&s.date&&s.date>_win.end?"#fbbf24":"#38bdf8"};margin-bottom:2px;padding-right:24px">${s.day}${s.date?` · ${new Date(s.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}`:""}
 </div>
       <div style="font-size:11px;color:#94a3b8;margin-bottom:6px">${fmtHour(s.startHour)} · Score: ${totalScore}/100</div>
