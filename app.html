@@ -861,8 +861,8 @@ Business parameters:
 - Total trucks: ${PARAMS.totaltrucks} — ABSOLUTE HARD LIMIT. If all trucks are deployed in a time slot, nothing can be scheduled there. No exceptions.
 - Total techs: ${PARAMS.totaltechs} — secondary constraint used for tech assignment optimization
 - Fuel: $${PARAMS.fuel}/mile, Workday: ${fmtHour(PARAMS.start)}–${fmtHour(PARAMS.end)}
-- 7-day week (Sun–Sat, week starts on Sunday)
-- IMPORTANT: Day names must exactly match the date provided. June 6 2026 is a Saturday. Always verify day name matches the date.
+- 7-day week (Sun–Sat). ALL 7 days are valid for scheduling including Sunday and Saturday. Do NOT default to Mon-Fri only.
+- IMPORTANT: Day names must exactly match the date provided. June 6 2026 is a Saturday, June 7 2026 is a Sunday. Always derive day name from the actual date.
 - SCHEDULING WINDOW: ${win.start} to ${win.end} (${win.label})
 - Total trucks: ${PARAMS.totaltrucks} — a slot is TRUCK-FULL when it already has ${PARAMS.totaltrucks} jobs. Truck-full slots CANNOT be used under any circumstances.
 - Total techs available: ${PARAMS.totaltechs}, currently available techs: ${availTechs.length}
@@ -1277,7 +1277,8 @@ async function optimizeSchedule(){
     const techList = availTechs.map(t=>t.name+(t.canDrive?"*":"")).join(",")||"none";
 
     const prompt = "Schedule optimizer. JSON only.\n"
-      + "Trucks:"+PARAMS.totaltrucks+"(hard) Techs:"+PARAMS.totaltechs+" Crew/job:"+PARAMS.crew+" Day:"+fmtHour(PARAMS.start)+"-"+fmtHour(PARAMS.end)+"\n"
+      + "Trucks:"+PARAMS.totaltrucks+"(hard) Techs:"+PARAMS.totaltechs+" Crew/job:"+PARAMS.crew+" Hours:"+fmtHour(PARAMS.start)+"-"+fmtHour(PARAMS.end)+"\n"
+      + "WorkDays: ALL 7 days (Sun-Sat) are valid scheduling days. Do NOT skip Sundays or Saturdays.\n"
       + "Window:"+win.start+" to "+win.end+"\n"
       + "Techs:"+techList+" (*=driver)\n"
       + "Rates:"+rates+"\n"
