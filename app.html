@@ -1192,6 +1192,7 @@ let optimizerMoves = []; // [{jobId, jobName, fromKey, toKey, fromLabel, toLabel
 function closeOptimizer(){
   document.getElementById("optimizer-panel").style.display="none";
   optimizerMoves=[];
+  setTab("schedule"); // restore normal full schedule view
 }
 
 async function optimizeSchedule(){
@@ -1199,7 +1200,19 @@ async function optimizeSchedule(){
   const includeCurrentJob = document.getElementById("optimize-include-current").checked;
   const btn = document.getElementById("optimize-btn");
   btn.disabled=true; btn.textContent="🤖 Analyzing...";
-  setTab("schedule");
+
+  // Show optimizer panel immediately with loading state — don't switch tabs
+  document.getElementById("optimizer-panel").style.display="block";
+  document.getElementById("optimizer-summary").innerHTML='<span style="color:#7dd3fc" class="pulse">🤖 Analyzing schedule within window — this may take a few seconds...</span>';
+  document.getElementById("optimizer-moves-list").innerHTML="";
+  document.getElementById("optimizer-no-moves").style.display="none";
+  document.getElementById("optimizer-move-count").textContent="...";
+  // Show schedule view but keep split layout so optimizer is visible alongside calendar
+  ["add","params"].forEach(x=>{ const el=document.getElementById("tab-"+x); if(el) el.style.display="none"; });
+  document.querySelectorAll(".tab-btn").forEach((b,i)=>b.classList.toggle("active",i===2));
+  // Keep split layout — optimizer panel in right panel needs to be visible
+  document.getElementById("main-area").className="main split";
+  document.getElementById("left-panel").style.display="none";
 
   // Build current job in form (if checkbox ticked and form has data)
   let currentJob = null;
@@ -1323,11 +1336,12 @@ Return exactly this JSON (no markdown):
 
     renderOptimizerPanel(parsed.summary||"");
   } catch(e){
-    console.error("Optimizer error:", e.message);
+    console.error("Optimizer error:", e.message, e.stack);
     document.getElementById("optimizer-panel").style.display="block";
-    document.getElementById("optimizer-summary").innerHTML=`<span style="color:#f87171">⚠ ${e.message}</span>`;
+    document.getElementById("optimizer-summary").innerHTML=`<span style="color:#f87171">⚠ Optimizer error: ${e.message}</span><br><span style="font-size:10px;color:#475569">Check browser console for details.</span>`;
     document.getElementById("optimizer-moves-list").innerHTML="";
     document.getElementById("optimizer-no-moves").style.display="none";
+    document.getElementById("optimizer-move-count").textContent="0";
   }
 
   btn.disabled=false; btn.textContent="🔧 Optimize Schedule";
