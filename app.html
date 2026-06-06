@@ -151,6 +151,9 @@
   .job-chip{border-radius:5px;padding:2px 5px;margin-bottom:1px;cursor:pointer;transition:filter .15s}
   .job-chip:hover{filter:brightness(1.1)}
 
+  .window-preset{padding:4px 10px;border-radius:6px;border:1px solid #1e293b;background:#0c0f1a;color:#64748b;font-size:10px;font-weight:600;cursor:pointer;transition:all .15s}
+  .window-preset:hover{background:#1e2535;color:#94a3b8}
+  .window-preset.active{background:#1e3a5f;color:#38bdf8;border-color:#38bdf8}
   .legend{margin-top:8px;font-size:10px;color:#334155}
   .empty-state{text-align:center;padding-top:50px;color:#334155}
   .pulse{animation:pulse 1.5s infinite}
@@ -281,6 +284,26 @@
             <div><div style="font-size:9px;color:#64748b;margin-bottom:1px">Labor</div><div id="labor-cost" style="font-weight:700;color:#f87171;font-size:13px"></div></div>
             <div><div style="font-size:9px;color:#64748b;margin-bottom:1px">Drive</div><div id="drive-cost" style="font-weight:700;color:#fbbf24;font-size:13px"></div></div>
             <div><div style="font-size:9px;color:#64748b;margin-bottom:1px">Profit</div><div id="est-profit" style="font-weight:700;color:#4ade80;font-size:13px"></div></div>
+          </div>
+          <!-- Date Window Picker -->
+          <div style="background:#0f172a;border:1px solid #1e3a5f;border-radius:8px;padding:10px;margin-bottom:10px">
+            <label class="label" style="color:#7dd3fc;margin-bottom:6px">AI SCHEDULING WINDOW</label>
+            <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+              <button class="window-preset" onclick="setWindowPreset('week')" id="wp-week">Next Week</button>
+              <button class="window-preset" onclick="setWindowPreset('2weeks')" id="wp-2weeks">2 Weeks</button>
+              <button class="window-preset" onclick="setWindowPreset('month')" id="wp-month">This Month</button>
+              <button class="window-preset active" onclick="setWindowPreset('custom')" id="wp-custom">Custom</button>
+            </div>
+            <div class="grid2" id="custom-date-range">
+              <div class="field" style="margin:0">
+                <label class="label">FROM</label>
+                <input class="input" type="date" id="window-start">
+              </div>
+              <div class="field" style="margin:0">
+                <label class="label">TO</label>
+                <input class="input" type="date" id="window-end">
+              </div>
+            </div>
           </div>
           <div style="display:flex;gap:6px">
             <button class="add-btn" style="flex:1" id="add-to-queue-btn" onclick="addToQueue()">+ Add to Queue</button>
@@ -780,12 +803,14 @@ async function runAI(job){
   const driverTechs=availTechs.filter(t=>t.canDrive);
   const rateContext=SERVICE_TYPES.map(s=>`  ${s}: $${JOB_TYPE_RATES[s]||75}/man hr`).join("\n");
 
+  const win=getWindowDates();
   const prompt=`You are a field service scheduling optimizer. Return ONLY valid JSON, no other text.
 
 Business parameters:
 - Labor: $${PARAMS.labor}/hr/person, Crew size: ${PARAMS.crew}, Total crews: ${PARAMS.totalcrews}
 - Fuel: $${PARAMS.fuel}/mile, Workday: ${fmtHour(PARAMS.start)}–${fmtHour(PARAMS.end)}
 - 7-day week (Mon–Sun scheduling available)
+- SCHEDULING WINDOW: ${win.start} to ${win.end} (${win.label}) — suggest slots ONLY within this date range
 
 Available technicians (${availTechs.length} available):
 ${availTechs.map(t=>`  ${t.name} ${t.canDrive?"(driver)":"(no drive)"}`).join("\n")||"  None listed"}
@@ -814,11 +839,12 @@ Rules:
 - Assign techs from available list; need at least 1 driver per crew
 - Consider 7-day week; weekends for overflow or client preference
 
+All suggestion dates must fall between ${win.start} and ${win.end}.
 Return exactly this JSON (no markdown, no extra text):
 {"suggestions":[
-  {"day":"Monday","date":"2026-05-18","startHour":9,"reason":"2 sentence explanation","profitScore":85,"driveScore":72,"preferenceScore":60,"warnings":[],"assignedTechs":["Name1","Name2"]},
-  {"day":"Tuesday","date":"2026-05-19","startHour":8,"reason":"2 sentence explanation","profitScore":80,"driveScore":68,"preferenceScore":55,"warnings":[],"assignedTechs":["Name1"]},
-  {"day":"Wednesday","date":"2026-05-20","startHour":10,"reason":"2 sentence explanation","profitScore":75,"driveScore":80,"preferenceScore":70,"warnings":[],"assignedTechs":["Name2"]}
+  {"day":"Monday","date":"${win.start}","startHour":9,"reason":"2 sentence explanation","profitScore":85,"driveScore":72,"preferenceScore":60,"warnings":[],"assignedTechs":["Name1","Name2"]},
+  {"day":"Tuesday","date":"${win.start}","startHour":8,"reason":"2 sentence explanation","profitScore":80,"driveScore":68,"preferenceScore":55,"warnings":[],"assignedTechs":["Name1"]},
+  {"day":"Wednesday","date":"${win.start}","startHour":10,"reason":"2 sentence explanation","profitScore":75,"driveScore":80,"preferenceScore":70,"warnings":[],"assignedTechs":["Name2"]}
 ]}`;
 
   try{
@@ -1085,6 +1111,44 @@ function resetForm(){
   lineItems=[{desc:"",cost:0}]; renderLineItems();
 }
 
+// ── DATE WINDOW PICKER ───────────────────────────────────────────────────────
+function fmtDate(d){ return d.toISOString().split("T")[0]; }
+function setWindowPreset(preset){
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  let start, end;
+  if(preset==="week"){
+    start=new Date(today);
+    end=new Date(today); end.setDate(today.getDate()+7);
+  } else if(preset==="2weeks"){
+    start=new Date(today);
+    end=new Date(today); end.setDate(today.getDate()+14);
+  } else if(preset==="month"){
+    start=new Date(today.getFullYear(),today.getMonth(),1);
+    end=new Date(today.getFullYear(),today.getMonth()+1,0);
+  } else {
+    // custom — just activate the button, let user pick dates
+    document.querySelectorAll(".window-preset").forEach(b=>b.classList.remove("active"));
+    document.getElementById("wp-custom").classList.add("active");
+    document.getElementById("custom-date-range").style.display="grid";
+    return;
+  }
+  document.getElementById("window-start").value=fmtDate(start);
+  document.getElementById("window-end").value=fmtDate(end);
+  document.querySelectorAll(".window-preset").forEach(b=>b.classList.remove("active"));
+  document.getElementById("wp-"+preset).classList.add("active");
+  document.getElementById("custom-date-range").style.display="grid";
+}
+function getWindowDates(){
+  const s=document.getElementById("window-start").value;
+  const e=document.getElementById("window-end").value;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const start=s?new Date(s):today;
+  const end=e?new Date(e):new Date(today.getTime()+14*86400000);
+  return { start:fmtDate(start), end:fmtDate(end),
+    label: `${start.toLocaleDateString("en-US",{month:"short",day:"numeric"})} – ${end.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}` };
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 function initApp(){
   // Restore sliders
@@ -1106,8 +1170,14 @@ function initApp(){
 
   document.getElementById("job-hours").addEventListener("input",updateProfitPreview);
   document.getElementById("job-miles").addEventListener("input",updateProfitPreview);
-  document.getElementById("p-base-address").addEventListener("input",e=>updateParam("baseAddress",e.target.value));
-  document.getElementById("proxy-url-input").addEventListener("change",e=>updateParam("proxyUrl",e.target.value));
+  // Init date window picker to 2-week default
+  setWindowPreset("2weeks");
+
+  document.getElementById("p-base-address").addEventListener("input",e=>{
+    PARAMS.baseAddress=e.target.value;
+    saveParams(); // save immediately on every keystroke
+  });
+  document.getElementById("proxy-url-input").addEventListener("input",e=>{ PARAMS.proxyUrl=e.target.value; saveParams(); });
 }
 
 initApp();
