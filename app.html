@@ -966,11 +966,10 @@ New job to schedule:
 - Line items: ${job.lineItems.map(l=>`${l.desc}($${l.cost})`).join(",")||"none"}
 - Client pref day: ${job.preferredDay||"flexible"}
 - Client pref time: ${job.preferredTime||"flexible"}
-${job.isMultiDay?`- MULTI-DAY JOB: ${job.segments.length} days required
-  Segments: ${job.segments.map((s,i)=>`Day${i+1}:${s.hours}h${s.gapBefore?" (gap day before)":""}`).join(", ")}
-  Same crew locked: ${job.lockCrew?"YES — assign same techs each day":"NO — can use different techs"}
-  Drive cost: $${calcDriveCost(job).toFixed(0)} total (${job.segments.length} trips × ${job.distanceMiles} miles × 2 × $${PARAMS.fuel}/mi)`
-  :"- Single day job"}`
+${job.isMultiDay
+  ? "- MULTI-DAY JOB: "+job.segments.length+" days required\n  Segments: "+job.segments.map((s,i)=>"Day"+(i+1)+":"+s.hours+"h"+(s.gapBefore?" (gap before)":"")).join(", ")+"\n  Same crew locked: "+(job.lockCrew?"YES":"NO")+"\n  Drive cost: $"+calcDriveCost(job).toFixed(0)+" total ("+job.segments.length+" trips x "+job.distanceMiles+" mi x 2 x $"+PARAMS.fuel+"/mi)"
+  : "- Single day job"
+}
 
 CURRENT SCHEDULE (sample):
 ${scheduledSummary||"Empty — no jobs scheduled yet"}
