@@ -771,9 +771,17 @@ function autoCalculateMiles(){ clearTimeout(_milesDebounce); _milesDebounce=setT
 async function _doCalcMiles(){
   const jobAddr=document.getElementById("job-address").value.trim();
   const baseOverride=document.getElementById("job-base-override")?.value.trim();
-  const baseAddr=baseOverride||PARAMS.baseAddress;
-  if(!jobAddr||!baseAddr){ document.getElementById("miles-calc-hint").style.display="none"; return; }
-  const cacheKey=`${baseAddr}||${jobAddr}`;
+  // Re-read base address from input field in case it was just restored by initApp
+  const inputBase=document.getElementById("p-base-address")?.value.trim();
+  if(inputBase && !PARAMS.baseAddress) PARAMS.baseAddress=inputBase;
+  const baseAddr=baseOverride||PARAMS.baseAddress||inputBase;
+  console.log("Miles calc: job=",jobAddr," base=",baseAddr);
+  if(!jobAddr||!baseAddr){
+    document.getElementById("miles-calc-hint").style.display="none";
+    if(!baseAddr) { const h=document.getElementById("miles-calc-hint"); h.style.display="block"; h.style.color="#f87171"; h.textContent="✗ Set base address in Params first"; setTimeout(()=>{h.style.display="none";h.style.color="";},4000); }
+    return;
+  }
+  const cacheKey=baseAddr+"||"+jobAddr;
   if(autoCalculateMiles._lastKey===cacheKey) return;
   autoCalculateMiles._lastKey=cacheKey;
   const hint=document.getElementById("miles-calc-hint");
