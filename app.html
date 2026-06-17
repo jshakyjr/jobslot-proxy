@@ -156,6 +156,16 @@
   .window-preset.active{background:#1e3a5f;color:#38bdf8;border-color:#38bdf8}
   .legend{margin-top:8px;font-size:10px;color:#334155}
   .empty-state{text-align:center;padding-top:50px;color:#334155}
+  /* Multi-day job */
+  .multiday-toggle{display:flex;align-items:center;gap:7px;padding:8px 10px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;margin-bottom:8px;cursor:pointer}
+  .multiday-toggle input{accent-color:#0ea5e9;width:13px;height:13px;cursor:pointer}
+  .segment-row{background:#0c0f1a;border:1px solid #1e293b;border-radius:7px;padding:8px 10px;margin-bottom:5px}
+  .segment-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+  .segment-gap-toggle{font-size:10px;color:#64748b;background:none;border:1px solid #1e293b;border-radius:4px;padding:2px 7px;cursor:pointer;transition:all .15s}
+  .segment-gap-toggle.active{background:#2d1f00;border-color:#fbbf24;color:#fbbf24}
+  .multiday-summary{font-size:10px;color:#94a3b8;background:#0f172a;border-radius:6px;padding:6px 8px;margin-bottom:8px;line-height:1.6}
+  /* Multi-day chip indicator */
+  .chip-multiday-badge{font-size:8px;opacity:.8;margin-left:3px}
   /* Optimizer move cards */
   .move-card{background:#0f172a;border:1px solid #1e293b;border-radius:9px;padding:10px 12px;margin-bottom:7px;transition:border-color .2s}
   .move-card.approved{border-color:#059669;background:#031a0f}
@@ -255,10 +265,25 @@
               <option>Electrical</option>
             </select>
           </div>
+          <!-- Multi-day toggle -->
+          <label class="multiday-toggle" onclick="toggleMultiDay()">
+            <input type="checkbox" id="multiday-check" onclick="event.stopPropagation();toggleMultiDay()">
+            <span style="font-size:11px;color:#94a3b8;font-weight:600">MULTI-DAY JOB</span>
+            <span style="font-size:10px;color:#475569;margin-left:auto">Auto-splits hours across days</span>
+          </label>
+          <div id="multiday-panel" style="display:none;margin-bottom:10px">
+            <div id="segments-list"></div>
+            <div class="multiday-summary" id="multiday-summary"></div>
+            <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:#94a3b8;cursor:pointer;margin-bottom:8px">
+              <input type="checkbox" id="lock-crew-check" style="accent-color:#0ea5e9;width:13px;height:13px">
+              Lock same crew across all days
+            </label>
+          </div>
+
           <div class="grid2">
             <div class="field">
-              <label class="label">EST. HOURS</label>
-              <input class="input" type="number" id="job-hours" value="2" min=".25" max="12" step=".25" oninput="updateProfitPreview()">
+              <label class="label">EST. HOURS <span id="hours-total-label" style="color:#475569;font-weight:400"></span></label>
+              <input class="input" type="number" id="job-hours" value="2" min=".25" max="99" step=".25" oninput="updateProfitPreview();autoSplitDays()">
               <div class="hint" id="hours-calc-hint" style="display:none" onclick="applyCalculatedHours()"></div>
             </div>
             <div class="field">
@@ -545,7 +570,16 @@ function setTab(t){
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function fmtHour(h){const s=h>=12?"PM":"AM",d=h>12?h-12:(h===0?12:h);return `${d}:00 ${s}`}
-function calcProfit(j){return j.revenue - j.estimatedHours*PARAMS.labor*PARAMS.crew - j.distanceMiles*2*PARAMS.fuel}
+function calcProfit(j){
+  const days = j.segments ? j.segments.length : 1;
+  const driveCost = j.distanceMiles * 2 * PARAMS.fuel * days; // drive each day
+  const laborCost = j.estimatedHours * PARAMS.labor * PARAMS.crew;
+  return j.revenue - laborCost - driveCost;
+}
+function calcDriveCost(j){
+  const days = j.segments ? j.segments.length : 1;
+  return j.distanceMiles * 2 * PARAMS.fuel * days;
+}
 function getJobById(id){return jobs.find(j=>j.id===id)}
 function getProxyUrl(){ return (document.getElementById("proxy-url-input")?.value||PROXY_URL).replace(/\/$/,""); }
 
@@ -778,12 +812,15 @@ function updateProfitPreview(){
   document.getElementById("total-revenue").textContent=`$${rev.toLocaleString()}`;
   const hours=parseFloat(document.getElementById("job-hours").value)||2;
   const miles=parseFloat(document.getElementById("job-miles").value)||0;
-  const labor=hours*PARAMS.labor*PARAMS.crew, drive=miles*2*PARAMS.fuel;
+  const isMulti=document.getElementById("multiday-check")?.checked;
+  const days=isMulti&&jobSegments.length>0?jobSegments.length:1;
+  const labor=hours*PARAMS.labor*PARAMS.crew;
+  const drive=miles*2*PARAMS.fuel*days; // drive cost × number of days
   const pg=document.getElementById("profit-grid");
   if(rev>0){
     pg.style.display="grid";
     document.getElementById("labor-cost").textContent=`$${labor.toFixed(0)}`;
-    document.getElementById("drive-cost").textContent=`$${drive.toFixed(0)}`;
+    document.getElementById("drive-cost").textContent=`$${drive.toFixed(0)}${days>1?" ("+days+"d)":""}`;
     document.getElementById("est-profit").textContent=`$${(rev-labor-drive).toFixed(0)}`;
   } else { pg.style.display="none"; }
 }
@@ -810,6 +847,8 @@ async function addJob(){
   if(!name||!address){ alert("Please enter a job name and address."); return; }
   const revenue=lineItems.reduce((s,i)=>s+Number(i.cost||0),0);
   const svc=document.getElementById("job-service").value;
+  const isMultiDay=document.getElementById("multiday-check")?.checked && jobSegments.length>1;
+  const lockCrew=document.getElementById("lock-crew-check")?.checked;
   const job={
     id:Date.now(), name, service:svc, address,
     estimatedHours:parseFloat(document.getElementById("job-hours").value)||2,
@@ -818,6 +857,9 @@ async function addJob(){
     preferredTime:document.getElementById("job-pref-time").value,
     revenue, lineItems:[...lineItems],
     costPerManHour:JOB_TYPE_RATES[svc]||75,
+    isMultiDay,
+    segments:isMultiDay?[...jobSegments]:null,
+    lockCrew,
   };
   jobs.push(job);
   document.getElementById("add-btn").disabled=true;
@@ -923,6 +965,11 @@ New job to schedule:
 - Line items: ${job.lineItems.map(l=>`${l.desc}($${l.cost})`).join(",")||"none"}
 - Client pref day: ${job.preferredDay||"flexible"}
 - Client pref time: ${job.preferredTime||"flexible"}
+${job.isMultiDay?`- MULTI-DAY JOB: ${job.segments.length} days required
+  Segments: ${job.segments.map((s,i)=>`Day${i+1}:${s.hours}h${s.gapBefore?" (gap day before)":""}`).join(", ")}
+  Same crew locked: ${job.lockCrew?"YES — assign same techs each day":"NO — can use different techs"}
+  Drive cost: $${calcDriveCost(job).toFixed(0)} total (${job.segments.length} trips × ${job.distanceMiles} miles × 2 × $${PARAMS.fuel}/mi)`
+  :"- Single day job"}`
 
 CURRENT SCHEDULE (sample):
 ${scheduledSummary||"Empty — no jobs scheduled yet"}
@@ -935,11 +982,12 @@ Rules:
 
 All suggestion dates must fall between ${win.start} and ${win.end}.
 CRITICAL: The "day" field must be the correct day of week for the "date" field. Derive the day name FROM the date — do not guess. Example: 2026-06-06 = Saturday, 2026-06-07 = Sunday, 2026-06-08 = Monday.
+For multi-day jobs, include a "dates" array with one entry per segment (consecutive by default, skip a date for gap days).
 Return exactly this JSON (no markdown, no extra text):
 {"suggestions":[
-  {"day":"Monday","date":"${win.start}","startHour":9,"reason":"2 sentence explanation","profitScore":85,"driveScore":72,"preferenceScore":60,"warnings":[],"assignedTechs":["Name1","Name2"]},
-  {"day":"Tuesday","date":"${win.start}","startHour":8,"reason":"2 sentence explanation","profitScore":80,"driveScore":68,"preferenceScore":55,"warnings":[],"assignedTechs":["Name1"]},
-  {"day":"Wednesday","date":"${win.start}","startHour":10,"reason":"2 sentence explanation","profitScore":75,"driveScore":80,"preferenceScore":70,"warnings":[],"assignedTechs":["Name2"]}
+  {"day":"Monday","date":"${win.start}","startHour":9,"reason":"2 sentence explanation","profitScore":85,"driveScore":72,"preferenceScore":60,"warnings":[],"assignedTechs":["Name1","Name2"],"dates":[{"date":"${win.start}","hours":7,"gapBefore":false},{"date":"2026-06-09","hours":7,"gapBefore":false}]},
+  {"day":"Tuesday","date":"${win.start}","startHour":8,"reason":"2 sentence explanation","profitScore":80,"driveScore":68,"preferenceScore":55,"warnings":[],"assignedTechs":["Name1"],"dates":[{"date":"${win.start}","hours":7,"gapBefore":false}]},
+  {"day":"Wednesday","date":"${win.start}","startHour":10,"reason":"2 sentence explanation","profitScore":75,"driveScore":80,"preferenceScore":70,"warnings":[],"assignedTechs":["Name2"],"dates":[{"date":"${win.start}","hours":7,"gapBefore":false}]}
 ]}`;
 
   try{
@@ -1008,7 +1056,8 @@ function showSuggestions(job){
           <div><div style="display:flex;justify-content:space-between"><span style="font-size:9px;color:#64748b">${l}</span><span style="font-size:9px;font-weight:700;color:${c}">${sc}</span></div>
           <div class="score-bar-bg"><div class="score-bar" style="width:${sc}%;background:${c}"></div></div></div>`).join("")}
       </div>
-      ${s.assignedTechs?.length?`<div style="margin-top:6px;font-size:9px;color:#64748b">👷 ${s.assignedTechs.join(", ")}</div>`:""}
+      ${s.dates&&s.dates.length>1?`<div style="margin-top:6px;font-size:9px;color:#38bdf8">📅 ${s.dates.map((d,i)=>{const dn=new Date(d.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});return "Day"+(i+1)+": "+dn+(d.gapBefore?" (gap before)":"");}).join(" → ")}</div>`:""}
+      ${s.assignedTechs?.length?`<div style="margin-top:4px;font-size:9px;color:#64748b">👷 ${s.assignedTechs.join(", ")}${pendingJob?.lockCrew?" 🔗 locked":""}</div>`:""}
       ${s.warnings?.length?`<div style="margin-top:5px;padding:3px 6px;background:#2d1f00;border-radius:4px;font-size:9px;color:#fbbf24">⚠ ${s.warnings.join(" · ")}</div>`:""}
     `;
     container.appendChild(card);
@@ -1026,11 +1075,28 @@ function selectSuggestion(i){
 function confirmSchedule(){
   if(!pendingJob||!currentSuggestions.length) return;
   const s=currentSuggestions[selectedSuggestionIdx];
-  const dayShort=s.day.toUpperCase().slice(0,3);
-  const dateStr=s.date||dayShort;
-  addToSchedule(dayShort,s.startHour,pendingJob.id,dateStr);
-  // Save assigned techs to job
   pendingJob.assignedTechs=s.assignedTechs||[];
+
+  if(pendingJob.isMultiDay && s.dates && s.dates.length>1){
+    // Place each segment on its date
+    pendingJob.scheduledSegments=[];
+    s.dates.forEach((seg,i)=>{
+      const segId = pendingJob.id+"_d"+(i+1);
+      const dayShort=["SUN","MON","TUE","WED","THU","FRI","SAT"][new Date(seg.date+"T12:00:00").getDay()];
+      addToSchedule(dayShort, s.startHour, pendingJob.id, seg.date);
+      pendingJob.scheduledSegments.push({date:seg.date, hours:seg.hours, dayNum:i+1, totalDays:s.dates.length});
+    });
+    // Store first date as primary
+    pendingJob.scheduledDate=s.dates[0].date;
+    pendingJob.scheduledDay=["SUN","MON","TUE","WED","THU","FRI","SAT"][new Date(s.dates[0].date+"T12:00:00").getDay()];
+  } else {
+    // Single day
+    const dayShort=s.day.toUpperCase().slice(0,3);
+    const dateStr=s.date||dayShort;
+    addToSchedule(dayShort,s.startHour,pendingJob.id,dateStr);
+    pendingJob.scheduledDate=dateStr;
+  }
+
   dismissSuggestions();
   renderMonthView();
   if(expandedWeekKey) renderWeekExpand(expandedWeekKey);
@@ -1170,9 +1236,9 @@ function renderWeekExpand(weekStartOrStr){
           title="${job.name}${isJobber?" (Jobber)":""}"
           ${!isJobber?`onclick="removeFromSchedule('${dateKey||dayKey}','${jobId}')"`:""}>
           <div style="font-size:9px;font-weight:700;color:${col.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px">
-            ${isJobber?"🔒 ":""}${job.name}
+            ${isJobber?"🔒 ":""}${job.name}${(()=>{if(!job.scheduledSegments||job.scheduledSegments.length<2)return "";const seg=job.scheduledSegments.find(s=>s.date===dateStr);return seg?" ["+seg.dayNum+"/"+seg.totalDays+"]":""})()}
           </div>
-          <div style="font-size:8px;color:${col.text}aa">${job.estimatedHours}h · $${calcProfit(job).toFixed(0)}p</div>
+          <div style="font-size:8px;color:${col.text}aa">${job.estimatedHours}h · $${calcProfit(job).toFixed(0)}p${job.lockCrew?" 🔗":""}</div>
         </div>`;
       });
       cells+=`<td class="grid-slot">${chips}</td>`;
@@ -1230,6 +1296,96 @@ function resetForm(){
   autoCalculateMiles._lastKey="";
   calculatedHours=null;
   lineItems=[{desc:"",cost:0}]; renderLineItems();
+  // Reset multi-day
+  const mdCheck=document.getElementById("multiday-check");
+  if(mdCheck){ mdCheck.checked=false; }
+  const mdPanel=document.getElementById("multiday-panel");
+  if(mdPanel){ mdPanel.style.display="none"; }
+  const htLabel=document.getElementById("hours-total-label");
+  if(htLabel){ htLabel.textContent=""; }
+  const lockCheck=document.getElementById("lock-crew-check");
+  if(lockCheck){ lockCheck.checked=false; }
+  jobSegments=[];
+}
+
+// ── MULTI-DAY JOB LOGIC ──────────────────────────────────────────────────────
+let jobSegments = []; // [{hours, gapBefore}] — one entry per day
+
+function toggleMultiDay(){
+  const check = document.getElementById("multiday-check");
+  const panel = document.getElementById("multiday-panel");
+  // checkbox onclick fires before state changes, so read new state after brief delay
+  setTimeout(()=>{
+    const on = check.checked;
+    panel.style.display = on ? "block" : "none";
+    document.getElementById("hours-total-label").textContent = on ? "(total across all days)" : "";
+    if(on) autoSplitDays();
+    updateProfitPreview();
+  }, 0);
+}
+
+function autoSplitDays(){
+  if(!document.getElementById("multiday-check")?.checked) return;
+  const totalHours = parseFloat(document.getElementById("job-hours").value)||2;
+  const workdayHours = PARAMS.end - PARAMS.start;
+  const numDays = Math.ceil(totalHours / workdayHours);
+  const hoursPerDay = Math.ceil((totalHours / numDays) * 4) / 4; // round up to 15min
+
+  // Preserve existing gap settings if segments already exist
+  jobSegments = Array.from({length:numDays}, (_,i) => ({
+    hours: i < numDays-1 ? hoursPerDay : Math.max(0.25, totalHours - hoursPerDay*(numDays-1)),
+    gapBefore: jobSegments[i]?.gapBefore || false,
+  }));
+  renderSegments();
+  updateMultiDaySummary();
+  updateProfitPreview();
+}
+
+function renderSegments(){
+  const list = document.getElementById("segments-list");
+  if(!list) return;
+  list.innerHTML = "";
+  jobSegments.forEach((seg, i)=>{
+    const div = document.createElement("div");
+    div.className = "segment-row";
+    div.innerHTML = `
+      <div class="segment-header">
+        <span style="font-size:11px;font-weight:700;color:#38bdf8">Day ${i+1}</span>
+        ${i>0?`<button class="segment-gap-toggle${seg.gapBefore?" active":""}"
+          onclick="toggleSegmentGap(${i})"
+          title="Allow a gap day before this visit">⏸ Gap before Day ${i+1}</button>`:""}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label class="label" style="margin:0;white-space:nowrap">Hours:</label>
+        <input class="input" type="number" min=".25" max="12" step=".25"
+          value="${seg.hours}" style="width:70px;padding:4px 6px"
+          oninput="jobSegments[${i}].hours=parseFloat(this.value)||1;updateMultiDaySummary();updateProfitPreview()">
+        <span style="font-size:10px;color:#475569">${fmtHour(PARAMS.start)} – ${fmtHour(Math.min(PARAMS.end, PARAMS.start+seg.hours))}</span>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function toggleSegmentGap(i){
+  if(i<1||i>=jobSegments.length) return;
+  jobSegments[i].gapBefore = !jobSegments[i].gapBefore;
+  renderSegments();
+  updateMultiDaySummary();
+}
+
+function updateMultiDaySummary(){
+  const el = document.getElementById("multiday-summary");
+  if(!el) return;
+  const totalHours = jobSegments.reduce((s,seg)=>s+seg.hours,0);
+  const days = jobSegments.length;
+  const workdayHours = PARAMS.end - PARAMS.start;
+  const miles = parseFloat(document.getElementById("job-miles").value)||0;
+  const driveCost = miles * 2 * PARAMS.fuel * days;
+  const gaps = jobSegments.filter(s=>s.gapBefore).length;
+  const calendarDays = days + gaps; // days + gap days
+  el.innerHTML = `<b>${days} work days</b> · ${totalHours.toFixed(2)}h total · ~${calendarDays} calendar days`
+    + ` · Drive: $${driveCost.toFixed(0)} (${days} trips × ${miles} mi)`
+    + (gaps>0?` · ${gaps} gap day${gaps>1?"s":""} allowed`:"");
 }
 
 // ── SCHEDULE OPTIMIZER ───────────────────────────────────────────────────────
