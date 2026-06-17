@@ -557,6 +557,7 @@ function doLogout(){ sessionStorage.removeItem("kip_auth"); location.reload(); }
 if(sessionStorage.getItem("kip_auth")==="1"){
   document.getElementById("login-screen").style.display="none";
   document.getElementById("app-screen").style.display="flex";
+  // initApp() will be called after DOM is ready
 }
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
@@ -1708,7 +1709,8 @@ function initApp(){
   document.getElementById("proxy-url-input").addEventListener("input",e=>{ PARAMS.proxyUrl=e.target.value; saveParams(); });
 }
 
-initApp();
+// Only init if already authenticated (login will call initApp on fresh login)
+if(sessionStorage.getItem("kip_auth")==="1") initApp();
 </script>
 </body>
 </html>
