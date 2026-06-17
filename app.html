@@ -945,7 +945,7 @@ Business parameters:
 
 SCHEDULING RULES — follow strictly:
 - RULE 1 (HARD): Never suggest a slot that is truck-full. Trucks are the absolute constraint.
-- RULE 2 (SOFT): Prefer slots with enough available techs (at least ${PARAMS.crew} techs needed, at least 1 must be a driver).
+- RULE 2 (SOFT): Prefer slots with enough available techs (at least ${PARAMS.crew} techs needed, at least 1 must be a driver). If no techs are listed as available, treat this as UNAVAILABLE status — do not flag as a caution or warning, just note 'No techs assigned — mark unavailable' in warnings array.
 - RULE 3: Suggestions 1 & 2 should be within the scheduling window, optimizing profit/drive/preference while respecting truck limits.
 - RULE 4 (GUARANTEED FALLBACK): ${guaranteedNote}
 
@@ -1058,7 +1058,13 @@ function showSuggestions(job){
       </div>
       ${s.dates&&s.dates.length>1?`<div style="margin-top:6px;font-size:9px;color:#38bdf8">📅 ${s.dates.map((d,i)=>{const dn=new Date(d.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});return "Day"+(i+1)+": "+dn+(d.gapBefore?" (gap before)":"");}).join(" → ")}</div>`:""}
       ${s.assignedTechs?.length?`<div style="margin-top:4px;font-size:9px;color:#64748b">👷 ${s.assignedTechs.join(", ")}${pendingJob?.lockCrew?" 🔗 locked":""}</div>`:""}
-      ${s.warnings?.length?`<div style="margin-top:5px;padding:3px 6px;background:#2d1f00;border-radius:4px;font-size:9px;color:#fbbf24">⚠ ${s.warnings.join(" · ")}</div>`:""}
+      ${s.warnings?.length?s.warnings.map(w=>{
+        const isTechUnavail = w.toLowerCase().includes("tech") && (w.toLowerCase().includes("unavail")||w.toLowerCase().includes("no tech")||w.toLowerCase().includes("assignment"));
+        return isTechUnavail
+          ? `<div style="margin-top:5px;padding:3px 6px;background:#0f172a;border-radius:4px;font-size:9px;color:#475569;border:1px solid #1e293b">ℹ ${w}</div>`
+          : `<div style="margin-top:5px;padding:3px 6px;background:#2d1f00;border-radius:4px;font-size:9px;color:#fbbf24">⚠ ${w}</div>`;
+      }).join(""):""
+      }
     `;
     container.appendChild(card);
   });
